@@ -1,0 +1,47 @@
+{
+  "skill": "react-enterprise-rules",
+  "positive": [
+    {
+      "id": "react_component_001",
+      "input": "Create a React component for a user profile card using TypeScript.",
+      "expected": "trigger"
+    },
+    {
+      "id": "fsd_refactor_001",
+      "input": "Refactor this frontend page according to Feature-Sliced Design.",
+      "expected": "trigger"
+    },
+    {
+      "id": "redux_review_001",
+      "input": "Review this Redux Toolkit slice and suggest improvements.",
+      "expected": "trigger"
+    },
+    {
+      "id": "api_client_001",
+      "input": "Add an Axios API client for the orders endpoint.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "nestjs_guard_001",
+      "input": "Create a NestJS authorization guard.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "postgres_schema_001",
+      "input": "Design a PostgreSQL schema for invoices.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "mcp_security_001",
+      "input": "Audit this MCP server for prompt injection risks.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "roadmap_001",
+      "input": "Write a global agent ecosystem roadmap.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "skill": "code-review",
+  "positive": [
+    {
+      "id": "pr_review_001",
+      "input": "Review this PR and tell me if it is ready to merge.",
+      "expected": "trigger"
+    },
+    {
+      "id": "risk_summary_001",
+      "input": "Summarize this diff and identify merge risks.",
+      "expected": "trigger"
+    },
+    {
+      "id": "ai_pr_001",
+      "input": "Produce a PR review for these AI-generated changes.",
+      "expected": "trigger"
+    },
+    {
+      "id": "required_checks_001",
+      "input": "What checks are required before merging this change?",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "ts_file_001",
+      "input": "Review this one TypeScript function for typing issues.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "schema_design_001",
+      "input": "Design a Prisma schema for products.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "test_write_001",
+      "input": "Write a Playwright test for checkout.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "component_create_001",
+      "input": "Create a React component.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

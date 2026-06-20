@@ -1,0 +1,37 @@
+{
+  "skill": "a2a-agent-design",
+  "positive": [
+    {
+      "id": "agent_card_001",
+      "input": "Draft an Agent Card for a billing specialist agent.",
+      "expected": "trigger"
+    },
+    {
+      "id": "tool_vs_agent_001",
+      "input": "Should this workflow be an MCP tool or a remote A2A agent?",
+      "expected": "trigger"
+    },
+    {
+      "id": "registry_001",
+      "input": "Design a private registry for internal specialist agents.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "mcp_debug_001",
+      "input": "Debug this MCP schema error.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "a2ui_001",
+      "input": "Design a declarative UI payload for an agent response.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "react_001",
+      "input": "Create a React dashboard component.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

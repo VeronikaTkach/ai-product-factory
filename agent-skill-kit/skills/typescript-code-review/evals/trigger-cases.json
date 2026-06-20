@@ -1,0 +1,47 @@
+{
+  "skill": "typescript-code-review",
+  "positive": [
+    {
+      "id": "ts_diff_001",
+      "input": "Review this TypeScript diff for typing and async bugs.",
+      "expected": "trigger"
+    },
+    {
+      "id": "react_review_001",
+      "input": "Review this React hook for correctness.",
+      "expected": "trigger"
+    },
+    {
+      "id": "nestjs_review_001",
+      "input": "Review this NestJS service for error handling and validation.",
+      "expected": "trigger"
+    },
+    {
+      "id": "prisma_code_001",
+      "input": "Review this Prisma query code for N+1 and unsafe selects.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "db_schema_001",
+      "input": "Design a database schema for invoices.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "pr_summary_001",
+      "input": "Summarize this PR and decide whether it is ready to merge.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "test_plan_001",
+      "input": "Choose a testing strategy for this feature.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "roadmap_001",
+      "input": "Create a roadmap for skills architecture.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "skill": "agent-security-review",
+  "positive": [
+    {
+      "id": "authz_endpoint_001",
+      "input": "Review this endpoint for authorization issues before merge.",
+      "expected": "trigger"
+    },
+    {
+      "id": "mcp_tool_001",
+      "input": "Check this MCP tool for unsafe permissions and data exfiltration risk.",
+      "expected": "trigger"
+    },
+    {
+      "id": "secrets_001",
+      "input": "Check whether this diff can leak secrets or PII.",
+      "expected": "trigger"
+    },
+    {
+      "id": "high_risk_action_001",
+      "input": "Review this agent workflow before it sends emails to customers.",
+      "expected": "trigger"
+    },
+    {
+      "id": "migration_security_001",
+      "input": "Is this production data deletion migration safe to run?",
+      "expected": "trigger"
+    },
+    {
+      "id": "auth_stub_001",
+      "input": "Review this header-based auth stub before using it in a NestJS app.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "react_layout_001",
+      "input": "Review this React component spacing and Tailwind classes.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "ts_typing_001",
+      "input": "Review this TypeScript utility for better generics.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "test_strategy_001",
+      "input": "Choose unit or integration tests for this service.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "spec_001",
+      "input": "Turn this product idea into acceptance criteria.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

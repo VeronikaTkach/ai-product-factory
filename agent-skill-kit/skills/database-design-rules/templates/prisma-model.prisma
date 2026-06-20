@@ -1,0 +1,18 @@
+model Resource {
+  id        String   @id @default(uuid())
+  name      String
+  status    ResourceStatus @default(draft)
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([status, createdAt])
+}
+
+enum ResourceStatus {
+  draft
+  active
+  archived
+}

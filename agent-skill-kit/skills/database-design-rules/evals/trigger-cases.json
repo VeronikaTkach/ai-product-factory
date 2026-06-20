@@ -1,0 +1,47 @@
+{
+  "skill": "database-design-rules",
+  "positive": [
+    {
+      "id": "postgres_schema_001",
+      "input": "Design a PostgreSQL schema for invoices and payments.",
+      "expected": "trigger"
+    },
+    {
+      "id": "prisma_model_001",
+      "input": "Review this Prisma model for data integrity issues.",
+      "expected": "trigger"
+    },
+    {
+      "id": "migration_plan_001",
+      "input": "Plan a safe migration to make user.email unique.",
+      "expected": "trigger"
+    },
+    {
+      "id": "index_review_001",
+      "input": "Add indexes for filtering orders by owner and status.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "react_component_001",
+      "input": "Create a React component for a profile card.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "ts_review_001",
+      "input": "Review this TypeScript hook for better typing.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "playwright_001",
+      "input": "Write Playwright tests for the login page.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "roadmap_001",
+      "input": "Create a global roadmap for agent protocols.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

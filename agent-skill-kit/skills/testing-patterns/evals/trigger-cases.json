@@ -1,0 +1,52 @@
+{
+  "skill": "testing-patterns",
+  "positive": [
+    {
+      "id": "test_strategy_001",
+      "input": "What tests should we write for this NestJS endpoint?",
+      "expected": "trigger"
+    },
+    {
+      "id": "bug_regression_001",
+      "input": "Add a regression test before fixing this bug.",
+      "expected": "trigger"
+    },
+    {
+      "id": "playwright_001",
+      "input": "Write a Playwright smoke test for the login flow.",
+      "expected": "trigger"
+    },
+    {
+      "id": "component_test_001",
+      "input": "How should we test this React form component?",
+      "expected": "trigger"
+    },
+    {
+      "id": "migration_verification_001",
+      "input": "Define verification queries before and after this database migration.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "schema_001",
+      "input": "Design a PostgreSQL schema for payments.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "ts_review_001",
+      "input": "Review this TypeScript service for typing issues.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "component_create_001",
+      "input": "Create a React button component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "roadmap_001",
+      "input": "Write an ecosystem roadmap.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

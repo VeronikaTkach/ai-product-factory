@@ -1,0 +1,37 @@
+{
+  "skill": "observability-rules",
+  "positive": [
+    {
+      "id": "trace_plan_001",
+      "input": "Design traces for an agent workflow that calls tools and edits files.",
+      "expected": "trigger"
+    },
+    {
+      "id": "audit_logs_001",
+      "input": "What audit logs are needed for this production deployment agent?",
+      "expected": "trigger"
+    },
+    {
+      "id": "eval_telemetry_001",
+      "input": "Track cost, retries, and self-repair loops for evaluation.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "react_001",
+      "input": "Create a React component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "security_001",
+      "input": "Check this endpoint for authorization bugs.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "schema_001",
+      "input": "Design a Prisma schema.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

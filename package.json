@@ -1,0 +1,19 @@
+{
+  "name": "ai-product-factory",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:skill-tools": "npm run build --workspace=packages/skill-tools",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:mcp": "npm run build --workspace=packages/mcp-skill-server",
+    "build": "npm run build:skill-tools && npm run build:web && npm run build:mcp",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:mcp": "npm run dev --workspace=packages/mcp-skill-server",
+    "start:web": "npm run start --workspace=apps/web",
+    "start:mcp": "npm run start --workspace=packages/mcp-skill-server"
+  }
+}

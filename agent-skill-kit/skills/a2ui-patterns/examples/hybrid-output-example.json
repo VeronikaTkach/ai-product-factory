@@ -1,0 +1,30 @@
+{
+  "data": {
+    "sales": [
+      {
+        "region": "North",
+        "revenue": 12000
+      }
+    ]
+  },
+  "ui": {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": "Column",
+          "children": ["title"]
+        },
+        {
+          "id": "title",
+          "component": "Text",
+          "text": "Regional Sales",
+          "variant": "h1"
+        }
+      ]
+    }
+  },
+  "ui_available": true
+}

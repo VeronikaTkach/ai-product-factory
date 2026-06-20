@@ -1,0 +1,52 @@
+{
+  "skill": "spec-driven-development",
+  "positive": [
+    {
+      "id": "feature_spec_001",
+      "input": "Turn this feature idea into a technical spec before implementation.",
+      "expected": "trigger"
+    },
+    {
+      "id": "acceptance_criteria_001",
+      "input": "Write acceptance criteria and BDD scenarios for checkout.",
+      "expected": "trigger"
+    },
+    {
+      "id": "agent_prompt_001",
+      "input": "Prepare a safe implementation prompt for a coding agent.",
+      "expected": "trigger"
+    },
+    {
+      "id": "bugfix_spec_001",
+      "input": "Create a bugfix spec with reproduction steps and regression test.",
+      "expected": "trigger"
+    },
+    {
+      "id": "migration_plan_001",
+      "input": "Plan a high-risk production database migration before writing migration code.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "ts_review_001",
+      "input": "Review this TypeScript function for typing issues.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "security_review_001",
+      "input": "Check this endpoint for authorization bugs.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "db_schema_001",
+      "input": "Design indexes for this PostgreSQL query.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "react_component_001",
+      "input": "Create a React profile card component.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

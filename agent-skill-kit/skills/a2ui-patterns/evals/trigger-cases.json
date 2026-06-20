@@ -1,0 +1,37 @@
+{
+  "skill": "a2ui-patterns",
+  "positive": [
+    {
+      "id": "a2ui_payload_001",
+      "input": "Design an A2UI payload for an agent-generated dashboard.",
+      "expected": "trigger"
+    },
+    {
+      "id": "catalog_001",
+      "input": "Define a trusted component catalog for generative UI.",
+      "expected": "trigger"
+    },
+    {
+      "id": "hybrid_output_001",
+      "input": "Should this agent return data only or data plus UI?",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "react_001",
+      "input": "Build a normal React card component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "a2a_001",
+      "input": "Design an Agent Card for a billing agent.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "mcp_001",
+      "input": "Audit this MCP server.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

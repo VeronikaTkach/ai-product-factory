@@ -1,0 +1,52 @@
+{
+  "skill": "nestjs-backend-rules",
+  "positive": [
+    {
+      "id": "nestjs_module_001",
+      "input": "Create a NestJS module for orders with controller and service.",
+      "expected": "trigger"
+    },
+    {
+      "id": "dto_validation_001",
+      "input": "Add DTO validation for a create-user endpoint.",
+      "expected": "trigger"
+    },
+    {
+      "id": "prisma_service_001",
+      "input": "Implement a Prisma-backed service method for finding an invoice.",
+      "expected": "trigger"
+    },
+    {
+      "id": "auth_guard_001",
+      "input": "Add an authorization guard for admin-only NestJS routes.",
+      "expected": "trigger"
+    },
+    {
+      "id": "state_transition_001",
+      "input": "Implement approve and reject endpoints that must prevent double finalization.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "react_component_001",
+      "input": "Create a React profile card using Tailwind.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "fsd_refactor_001",
+      "input": "Refactor this frontend page according to Feature-Sliced Design.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "roadmap_001",
+      "input": "Write a global agent ecosystem roadmap.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "mcp_audit_001",
+      "input": "Audit this public MCP server for prompt injection risks.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

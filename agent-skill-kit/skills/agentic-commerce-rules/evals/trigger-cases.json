@@ -1,0 +1,37 @@
+{
+  "skill": "agentic-commerce-rules",
+  "positive": [
+    {
+      "id": "payment_policy_001",
+      "input": "Design a policy for an agent that can buy office supplies.",
+      "expected": "trigger"
+    },
+    {
+      "id": "ap2_001",
+      "input": "Review an AP2-style payment flow for consent and spending limits.",
+      "expected": "trigger"
+    },
+    {
+      "id": "order_agent_001",
+      "input": "Can this agent place orders automatically after comparing merchants?",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "normal_ui_001",
+      "input": "Create a checkout button component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "db_schema_001",
+      "input": "Design a product table schema.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "security_general_001",
+      "input": "Review this endpoint for authorization issues.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

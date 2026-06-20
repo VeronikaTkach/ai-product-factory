@@ -1,0 +1,39 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "main",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": ["title", "summary", "action"]
+      },
+      {
+        "id": "title",
+        "component": "Text",
+        "text": "Title",
+        "variant": "h1"
+      },
+      {
+        "id": "summary",
+        "component": "Text",
+        "text": "Summary"
+      },
+      {
+        "id": "action",
+        "component": "Button",
+        "child": "action-label",
+        "action": {
+          "event": {
+            "name": "primary_action"
+          }
+        }
+      },
+      {
+        "id": "action-label",
+        "component": "Text",
+        "text": "Continue"
+      }
+    ]
+  }
+}

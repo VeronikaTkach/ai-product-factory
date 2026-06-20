@@ -1,0 +1,37 @@
+{
+  "skill": "mcp-tool-consumption",
+  "positive": [
+    {
+      "id": "mcp_adopt_001",
+      "input": "Should we connect this public MCP server to our project?",
+      "expected": "trigger"
+    },
+    {
+      "id": "mcp_debug_001",
+      "input": "The MCP tool call is failing with missing parameters. Help debug it.",
+      "expected": "trigger"
+    },
+    {
+      "id": "mcp_permissions_001",
+      "input": "Decide whether this MCP should be read-only or allowed to write.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "a2a_001",
+      "input": "Design a remote specialist agent exposed through A2A.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "react_001",
+      "input": "Create a React component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "db_001",
+      "input": "Design a PostgreSQL schema.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

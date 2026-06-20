@@ -1,0 +1,47 @@
+{
+  "skill": "pwa-rules",
+  "positive": [
+    {
+      "id": "pwa_setup_001",
+      "input": "Turn this Vite React app into an installable PWA with offline support.",
+      "expected": "trigger"
+    },
+    {
+      "id": "service_worker_review_001",
+      "input": "Review this service worker cache strategy and update flow.",
+      "expected": "trigger"
+    },
+    {
+      "id": "manifest_001",
+      "input": "Add a Web App Manifest with icons, theme color, and installability checks.",
+      "expected": "trigger"
+    },
+    {
+      "id": "offline_ux_001",
+      "input": "Design offline and stale-data behavior for this dashboard PWA.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "plain_react_001",
+      "input": "Create a React table component for expenses.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "nestjs_endpoint_001",
+      "input": "Create a NestJS endpoint for approving expenses.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "database_migration_001",
+      "input": "Add a PostgreSQL index for status filtering.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "mcp_tool_001",
+      "input": "Audit this MCP tool server for unsafe write access.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}
