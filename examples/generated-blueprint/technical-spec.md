@@ -51,3 +51,18 @@ Browser (learner / instructor)
 
 - Vercel for frontend and API routes.
 - Managed PostgreSQL (e.g., Vercel Postgres, Supabase, or Render) once persistence is added — out of scope for the AI Product Factory MVP itself, which only generates this recommendation.
+
+## Skill-Informed Architecture Notes
+
+These notes were added automatically because `database-design-rules`, `mcp-tool-consumption`, `observability-rules`, `a2a-agent-design`, and `a2ui-patterns` were included in the final skill selection before this blueprint was generated (see `docs/architecture.md`, "Manual Skill Selection"):
+
+- Add explicit data model constraints (NOT NULL, foreign keys, unique constraints) for every entity introduced above.
+- Add an ownership check (e.g. `WHERE owner_id = :userId`) on every query that reads or writes user-owned rows.
+- Add indexes on foreign keys and frequently filtered columns before this schema goes to production.
+- Document the tool access policy (which agents/tools can call which external systems) before adding new integrations.
+- Add distributed traces across the agent/orchestrator boundary for debugging multi-step flows.
+- Add cost and latency metrics per agent call to catch regressions.
+- Define explicit boundaries between agents/services and document what each one owns.
+- Define delegation rules: which agent can invoke which other agent, and how failures propagate.
+- Render any agent-generated UI/output through a trusted, schema-validated component catalog — never raw HTML/markdown from an untrusted source.
+- Validate agent-generated UI payloads against a schema before rendering; fail safe (show plain text) on validation failure.

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       parsedRequest.data.idea,
       parsedRequest.data.productSpec,
       parsedRequest.data.mvpScope,
+      parsedRequest.data.finalSelectedSkillIds,
     );
     const parsedResponse = BlueprintResponseSchema.safeParse(result);
     if (!parsedResponse.success) {

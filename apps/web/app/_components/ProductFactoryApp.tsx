@@ -9,9 +9,16 @@ import type {
   TBlueprintStage,
   TSkillsSource,
 } from "@/types/blueprint";
+import { PROTECTED_SKILL_IDS } from "@/types/blueprint";
 import { DEFAULT_BUSINESS_IDEA } from "@/lib/default-idea";
-import { fetchFullBlueprint, fetchProductSpec } from "@/lib/blueprint-client";
+import {
+  fetchAvailableSkills,
+  fetchFullBlueprint,
+  fetchProductSpec,
+} from "@/lib/blueprint-client";
+import { buildFinalSelectedSkills } from "@/lib/skill-selection";
 import { INITIAL_WORKFLOW_STEPS, withStepStatus } from "@/lib/workflow";
+import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
 import { IntroScreen } from "./IntroScreen";
 import { IdeaForm } from "./IdeaForm";
 import { WorkflowProgress } from "./WorkflowProgress";
@@ -20,12 +27,18 @@ import { ResultsTabs } from "./ResultsTabs";
 
 const STEP_DELAY_MS = 700;
 
+function withProtectedSkills(ids: string[]): string[] {
+  return Array.from(new Set([...PROTECTED_SKILL_IDS, ...ids]));
+}
+
 export function ProductFactoryApp() {
   const [stage, setStage] = useState<TBlueprintStage>("intro");
   const [idea, setIdea] = useState<IBusinessIdea>(DEFAULT_BUSINESS_IDEA);
   const [steps, setSteps] = useState<IWorkflowStep[]>(INITIAL_WORKFLOW_STEPS);
   const [blueprint, setBlueprint] = useState<IGeneratedBlueprint | null>(null);
-  const [selectedSkills, setSelectedSkills] = useState<ISelectedSkill[]>([]);
+  const [recommendedSkills, setRecommendedSkills] = useState<ISelectedSkill[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<ISkillMetadata[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [skillsSource, setSkillsSource] = useState<TSkillsSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -54,8 +67,9 @@ export function ProductFactoryApp() {
     markStep("business-analyst", "in-progress");
 
     try {
-      const [specResult] = await Promise.all([
+      const [specResult, skills] = await Promise.all([
         fetchProductSpec(submittedIdea),
+        fetchAvailableSkills().catch(() => [] as ISkillMetadata[]),
         wait(STEP_DELAY_MS),
       ]);
       setBlueprint((prev) => ({
@@ -63,8 +77,10 @@ export function ProductFactoryApp() {
         productSpec: specResult.productSpec,
         mvpScope: specResult.mvpScope,
       }));
-      setSelectedSkills(specResult.selectedSkills);
+      setRecommendedSkills(specResult.selectedSkills);
+      setAvailableSkills(skills);
       setSkillsSource(specResult.skillsSource);
+      setSelectedSkillIds(withProtectedSkills(specResult.selectedSkills.map((skill) => skill.id)));
       setSteps((prev) =>
         prev.map((step) =>
           step.id === "business-analyst" ? { ...step, status: "done" } : { ...step, status: "blocked" },
@@ -75,6 +91,14 @@ export function ProductFactoryApp() {
       markStep("business-analyst", "error");
       setError(toErrorMessage(caughtError, "Failed to generate the Product Spec."));
     }
+  }
+
+  function handleSkillSelectionChange(ids: string[]) {
+    setSelectedSkillIds(withProtectedSkills(ids));
+  }
+
+  function handleResetSkills() {
+    setSelectedSkillIds(withProtectedSkills(recommendedSkills.map((skill) => skill.id)));
   }
 
   async function handleApprove() {
@@ -88,7 +112,7 @@ export function ProductFactoryApp() {
 
     try {
       const [result] = await Promise.all([
-        fetchFullBlueprint(idea, blueprint.productSpec, blueprint.mvpScope),
+        fetchFullBlueprint(idea, blueprint.productSpec, blueprint.mvpScope, selectedSkillIds),
         wait(STEP_DELAY_MS),
       ]);
       setBlueprint((prev) => ({
@@ -121,7 +145,9 @@ export function ProductFactoryApp() {
     setIdea(DEFAULT_BUSINESS_IDEA);
     setSteps(INITIAL_WORKFLOW_STEPS);
     setBlueprint(null);
-    setSelectedSkills([]);
+    setRecommendedSkills([]);
+    setAvailableSkills([]);
+    setSelectedSkillIds([]);
     setSkillsSource(null);
     setError(null);
   }
@@ -152,8 +178,12 @@ export function ProductFactoryApp() {
         <SpecApproval
           productSpecMarkdown={blueprint.productSpec}
           mvpScopeMarkdown={blueprint.mvpScope}
-          selectedSkills={selectedSkills}
+          recommendedSkills={recommendedSkills}
           skillsSource={skillsSource}
+          availableSkills={availableSkills}
+          selectedSkillIds={selectedSkillIds}
+          onSkillSelectionChange={handleSkillSelectionChange}
+          onResetSkills={handleResetSkills}
           onApprove={handleApprove}
           onRequestChanges={handleRequestChanges}
         />
@@ -174,7 +204,7 @@ export function ProductFactoryApp() {
     return (
       <ResultsTabs
         blueprint={blueprint}
-        selectedSkills={selectedSkills}
+        selectedSkills={buildFinalSelectedSkills(selectedSkillIds, recommendedSkills, availableSkills)}
         skillsSource={skillsSource}
         onStartOver={handleStartOver}
       />

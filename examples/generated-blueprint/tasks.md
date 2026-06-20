@@ -32,3 +32,10 @@
 ## Dependencies
 
 See `roadmap.md` for milestone-level dependencies.
+
+## Skill-Informed Tasks
+
+Added automatically because `testing-patterns` was included in the final skill selection:
+
+- [ ] Add a test strategy: unit tests for pure logic, integration tests for service+database behavior, e2e tests for the primary user flow.
+- [ ] Add a regression test for every bug fix before merging.

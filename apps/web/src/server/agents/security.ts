@@ -1,5 +1,6 @@
 import type { IAgent, ISecurityInput, ISecurityOutput } from "@/types/agents";
 import { detectSecuritySignals, type ISecuritySignals } from "./security-signals";
+import { getEnrichmentBullets } from "./skill-enrichment";
 
 /**
  * Demo-mode implementation: a deterministic, rule-based STRIDE model driven
@@ -10,9 +11,14 @@ import { detectSecuritySignals, type ISecuritySignals } from "./security-signals
  */
 export const securityAgent: IAgent<ISecurityInput, ISecurityOutput> = {
   id: "security",
-  run({ idea }) {
+  run({ idea, selectedSkillIds }) {
     const name = idea.productName || "Untitled Product";
     const signals = detectSecuritySignals(idea);
+    const enrichmentBullets = getEnrichmentBullets(selectedSkillIds, "security");
+    const enrichmentSection =
+      enrichmentBullets.length > 0
+        ? `\n## Skill-Informed Security Notes\n\n${enrichmentBullets.map((bullet) => `- ${bullet}`).join("\n")}\n`
+        : "";
 
     const security = `# Security and Threat Model: ${name}
 
@@ -35,7 +41,7 @@ ${buildApprovalActions(signals).map((action) => `- ${action}`).join("\n")}
 ## Security Recommendations
 
 ${buildRecommendations(signals).map((rec) => `- ${rec}`).join("\n")}
-`;
+${enrichmentSection}`;
 
     return { security };
   },

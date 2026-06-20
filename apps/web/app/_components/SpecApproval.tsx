@@ -1,12 +1,17 @@
 import type { ISelectedSkill, TSkillsSource } from "@/types/blueprint";
+import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
 import { MarkdownPreview } from "./MarkdownPreview";
-import { SelectedSkillsPanel } from "./SelectedSkillsPanel";
+import { SkillSelector } from "./SkillSelector";
 
 interface ISpecApprovalProps {
   productSpecMarkdown: string;
   mvpScopeMarkdown: string;
-  selectedSkills: ISelectedSkill[];
+  recommendedSkills: ISelectedSkill[];
   skillsSource?: TSkillsSource | null;
+  availableSkills: ISkillMetadata[];
+  selectedSkillIds: string[];
+  onSkillSelectionChange: (ids: string[]) => void;
+  onResetSkills: () => void;
   onApprove: () => void;
   onRequestChanges: () => void;
 }
@@ -14,8 +19,12 @@ interface ISpecApprovalProps {
 export function SpecApproval({
   productSpecMarkdown,
   mvpScopeMarkdown,
-  selectedSkills,
+  recommendedSkills,
   skillsSource,
+  availableSkills,
+  selectedSkillIds,
+  onSkillSelectionChange,
+  onResetSkills,
   onApprove,
   onRequestChanges,
 }: ISpecApprovalProps) {
@@ -26,14 +35,21 @@ export function SpecApproval({
         Security, Roadmap, and Tasks will not be generated until you approve it.
       </div>
 
-      <SelectedSkillsPanel skills={selectedSkills} source={skillsSource} />
-
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <MarkdownPreview markdown={productSpecMarkdown} />
       </div>
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <MarkdownPreview markdown={mvpScopeMarkdown} />
       </div>
+
+      <SkillSelector
+        availableSkills={availableSkills}
+        recommendedSkills={recommendedSkills}
+        selectedSkillIds={selectedSkillIds}
+        skillsSource={skillsSource ?? null}
+        onChange={onSkillSelectionChange}
+        onReset={onResetSkills}
+      />
 
       <div className="flex gap-3">
         <button

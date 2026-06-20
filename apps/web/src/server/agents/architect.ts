@@ -1,11 +1,12 @@
 import type { IAgent, IArchitectInput, IArchitectOutput } from "@/types/agents";
+import { getEnrichmentBullets } from "./skill-enrichment";
 
 export const architectAgent: IAgent<IArchitectInput, IArchitectOutput> = {
   id: "architect",
-  run({ idea }) {
+  run({ idea, selectedSkillIds }) {
     const name = idea.productName || "Untitled Product";
 
-    const architecture = `# Technical Architecture: ${name}
+    const base = `# Technical Architecture: ${name}
 
 ## Recommended Stack
 
@@ -32,6 +33,12 @@ Revisit caching and async processing once usage data justifies it; do not over-b
 Vercel-first deployment, consistent with the AI Product Factory deployment plan.
 `;
 
-    return { architecture };
+    const enrichmentBullets = getEnrichmentBullets(selectedSkillIds, "architecture");
+    const enrichmentSection =
+      enrichmentBullets.length > 0
+        ? `\n## Skill-Informed Architecture Notes\n\n${enrichmentBullets.map((bullet) => `- ${bullet}`).join("\n")}\n`
+        : "";
+
+    return { architecture: base + enrichmentSection };
   },
 };

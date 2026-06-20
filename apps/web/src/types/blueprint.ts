@@ -82,3 +82,13 @@ export interface ISelectedSkill {
 
 /** Where selectedSkills came from: the public MCP server, or the local skill-tools fallback. */
 export type TSkillsSource = "mcp" | "local";
+
+/**
+ * Skills that must always be selected and cannot be removed via the manual
+ * skill selector. spec-driven-development underpins the Product Spec
+ * itself, so it stays selected regardless of MCP/local recommendation or
+ * user edits. Enforced both client-side (disabled checkbox) and
+ * server-side (orchestrator merges this in before generating the
+ * blueprint) — see src/server/orchestrator.ts.
+ */
+export const PROTECTED_SKILL_IDS: readonly string[] = ["spec-driven-development"];

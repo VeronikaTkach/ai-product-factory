@@ -1,6 +1,7 @@
 import type { IAgent, IEvaluationInput, IEvaluationOutput } from "@/types/agents";
 import { scoreReadiness } from "@ai-product-factory/skill-tools";
 import type { IReadinessComponentScore } from "@ai-product-factory/skill-tools";
+import { getAppliedEnrichmentSkillIds } from "./skill-enrichment";
 
 /**
  * Demo-mode implementation: delegates the actual scoring to
@@ -11,7 +12,7 @@ import type { IReadinessComponentScore } from "@ai-product-factory/skill-tools";
  */
 export const evaluationAgent: IAgent<IEvaluationInput, IEvaluationOutput> = {
   id: "evaluation",
-  run({ idea, productSpec, mvpScope, architecture, security, roadmap, tasks }) {
+  run({ idea, productSpec, mvpScope, architecture, security, roadmap, tasks, selectedSkillIds }) {
     const name = idea.productName || "Untitled Product";
     const { components, finalScore } = scoreReadiness({
       productSpec,
@@ -25,6 +26,12 @@ export const evaluationAgent: IAgent<IEvaluationInput, IEvaluationOutput> = {
     const componentRows = components
       .map((component) => `| ${component.component} | ${component.score}/100 | ${component.notes} |`)
       .join("\n");
+
+    const appliedSkillIds = getAppliedEnrichmentSkillIds(selectedSkillIds);
+    const skillsAppliedSection =
+      appliedSkillIds.length > 0
+        ? `\n## Skills Applied\n\nThe following selected skills added deterministic notes to this blueprint (Architecture, Security, and/or Tasks): ${appliedSkillIds.join(", ")}.\n`
+        : "";
 
     const readinessScore = `# Readiness Score: ${name}
 
@@ -43,7 +50,7 @@ Readiness Score: ${finalScore}/100
 ## Interpretation
 
 ${buildInterpretation(components, finalScore)}
-`;
+${skillsAppliedSection}`;
 
     return { readinessScore };
   },

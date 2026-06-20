@@ -35,11 +35,12 @@ A single, repeatable scenario used for screenshots, the YouTube video, and judgi
 1. Open the app (intro screen).
 2. Click "Start" and fill the business idea form with the values above.
 3. Submit the form and observe the visible agent workflow progress (Business Analyst step running).
-4. Review the generated Product Spec and MVP Scope.
-5. Click "Approve and Continue" at the Product Spec approval step.
-6. Observe the remaining workflow steps run (Architect, Security, Planning, Evaluation).
-7. Review the Results tabs: Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score.
-8. Download one tab as Markdown, then use "Export All" to download the full blueprint bundle.
+4. Review the generated Product Spec and MVP Scope, and the **Skills for this blueprint** selector shown above the approve buttons — it lists the skills recommended by the MCP-first/local-fallback Skill Router, with a badge showing whether they came from the public MCP server or the local fallback.
+5. Optionally adjust the skill selection: uncheck a recommended skill, check additional skills from the full catalog, or click "Reset to recommended skills." `spec-driven-development` is always selected and cannot be unchecked.
+6. Click "Approve and Continue" at the Product Spec approval step — the final skill selection (not just the original recommendation) is sent to the blueprint stage.
+7. Observe the remaining workflow steps run (Architect, Security, Planning, Evaluation).
+8. Review the Results tabs: Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score. Sections like "Skill-Informed Architecture Notes," "Skill-Informed Security Notes," and the Readiness Score's "Skills Applied" list reflect the final skill selection from step 5/6.
+9. Download one tab as Markdown, then use "Export All" to download the full blueprint bundle.
 
 ## Why This Scenario
 

@@ -18,6 +18,7 @@ export interface IBusinessAnalystOutput {
 export interface IArchitectInput {
   idea: IBusinessIdea;
   productSpec: string;
+  selectedSkillIds: string[];
 }
 
 export interface IArchitectOutput {
@@ -28,6 +29,7 @@ export interface ISecurityInput {
   idea: IBusinessIdea;
   productSpec: string;
   architecture: string;
+  selectedSkillIds: string[];
 }
 
 export interface ISecurityOutput {
@@ -39,6 +41,7 @@ export interface IPlanningInput {
   productSpec: string;
   architecture: string;
   security: string;
+  selectedSkillIds: string[];
 }
 
 export interface IPlanningOutput {
@@ -54,6 +57,7 @@ export interface IEvaluationInput {
   security: string;
   roadmap: string;
   tasks: string;
+  selectedSkillIds: string[];
 }
 
 export interface IEvaluationOutput {

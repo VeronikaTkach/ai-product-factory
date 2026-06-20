@@ -1,4 +1,4 @@
-import type { IBusinessIdea, TSkillsSource } from "@/types/blueprint";
+import { PROTECTED_SKILL_IDS, type IBusinessIdea, type TSkillsSource } from "@/types/blueprint";
 import type { IBusinessAnalystOutput } from "@/types/agents";
 import { businessAnalystAgent } from "./agents/business-analyst";
 import { architectAgent } from "./agents/architect";
@@ -61,19 +61,30 @@ async function resolveSelectedSkills(
  * Product Spec has been approved by the user. Each agent receives the
  * prior agents' output, matching the input chain in
  * AI_Product_Factory_PROJECT_PLAN.md section 5.
+ *
+ * `finalSelectedSkillIds` is the user-adjusted skill set from the manual
+ * skill selector (recommended skills plus any the user added/removed).
+ * PROTECTED_SKILL_IDS is merged in server-side regardless of what the
+ * client sent, so spec-driven-development is never silently dropped.
+ * Each agent uses these ids to add deterministic, skill-informed notes —
+ * see src/server/agents/skill-enrichment.ts.
  */
 export async function runBlueprintStage(
   idea: IBusinessIdea,
   productSpec: string,
   mvpScope: string,
+  finalSelectedSkillIds: string[],
 ): Promise<IBlueprintStageResult> {
-  const { architecture } = await architectAgent.run({ idea, productSpec });
-  const { security } = await securityAgent.run({ idea, productSpec, architecture });
+  const selectedSkillIds = Array.from(new Set([...PROTECTED_SKILL_IDS, ...finalSelectedSkillIds]));
+
+  const { architecture } = await architectAgent.run({ idea, productSpec, selectedSkillIds });
+  const { security } = await securityAgent.run({ idea, productSpec, architecture, selectedSkillIds });
   const { roadmap, tasks } = await planningAgent.run({
     idea,
     productSpec,
     architecture,
     security,
+    selectedSkillIds,
   });
   const { readinessScore } = await evaluationAgent.run({
     idea,
@@ -83,6 +94,7 @@ export async function runBlueprintStage(
     security,
     roadmap,
     tasks,
+    selectedSkillIds,
   });
 
   return { architecture, security, roadmap, tasks, readinessScore };

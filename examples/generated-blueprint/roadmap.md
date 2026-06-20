@@ -38,3 +38,9 @@
 - Messaging (Milestone 3) depends on completed orders existing (Milestone 2) for order-linked context.
 - Reviews (Milestone 4) depend on completed orders (Milestone 2).
 - Security hardening (Milestone 4) should not be deferred past beta launch given financial and personal data in scope.
+
+## Skill-Informed Roadmap Notes
+
+Added automatically because `testing-patterns` was included in the final skill selection:
+
+- Add a hardening phase covering test coverage and regression checks before public launch.

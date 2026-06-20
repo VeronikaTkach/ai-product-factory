@@ -27,18 +27,23 @@ Browser
   -> ProductFactoryApp (client component, local React state)
        -> IdeaForm
        -> WorkflowProgress (visible agent step status, driven by real API calls)
-       -> SpecApproval (human-in-the-loop gate) + SelectedSkillsPanel
-       -> ResultsTabs (Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score) + SelectedSkillsPanel
+       -> SpecApproval (human-in-the-loop gate) + SkillSelector (editable)
+       -> ResultsTabs (Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score) + SelectedSkillsPanel (read-only, final selection)
        -> Markdown export (client-side Blob download)
+  -> fetch("/api/skills") -> GET /api/skills -> { skills } (full catalog, local skill-tools, no MCP)
   -> fetch("/api/blueprint") (apps/web/src/lib/blueprint-client.ts)
        -> POST /api/blueprint (Zod-validated request/response)
             -> orchestrator (apps/web/src/server/orchestrator.ts)
                  -> businessAnalystAgent + resolveSelectedSkills
                     (MCP-first via mcp-client.ts, falls back to
                     recommendSkillsDirect from @ai-product-factory/skill-tools)
-                    (stage: "spec", runs before approval)
-                 -> architectAgent -> securityAgent -> planningAgent -> evaluationAgent
-                    (stage: "blueprint", runs only after the user approves the Product Spec)
+                    (stage: "spec", runs before approval; returns recommended
+                    selectedSkills + skillsSource, not yet the final selection)
+                 -> architectAgent -> securityAgent -> planningAgent -> evaluationAgent,
+                    each receiving selectedSkillIds (the user's final selection,
+                    PROTECTED_SKILL_IDS merged in server-side)
+                    (stage: "blueprint", runs only after the user approves the
+                    Product Spec and finalizes the skill selection)
   -> GET /api/health -> { status, demoMode }
 ```
 
@@ -48,6 +53,7 @@ Browser
 - No database, no auth. State is request-scoped; nothing is persisted server-side.
 - Secrets: none introduced yet. `DEMO_MODE` is a plain server-side env var, never exposed with a `NEXT_PUBLIC_` prefix.
 - `apps/web` resolves `selectedSkills` MCP-first with a local fallback (see the dedicated section below) — `@ai-product-factory/skill-tools` in-process remains the always-available path; calling the deployed public MCP server is additive, not a replacement dependency.
+- The recommendation is a starting point, not the final answer: the user can adjust it before approving, and the *final* selection — not the recommendation — drives the blueprint stage's output. See "Manual Skill Selection and Skill-Informed Enrichment" below.
 
 ## Why a Single `/api/blueprint` Endpoint
 
@@ -129,7 +135,62 @@ Safety and observability:
 - **Failure logging never includes the idea text.** `logMcpWarning()` logs only the failure reason (error name/message, truncated to 200 characters, or "tool returned an error result" / "failed local validation") — never the business idea or the MCP response content.
 - **`skillsSource` is informational only.** Both paths produce the same `ISkillRecommendation[]` shape; the UI and downstream agents behave identically either way.
 
-**Vercel file-tracing fix (Phase 6A):** Next.js file tracing cannot statically see that `/api/blueprint` needs `agent-skill-kit/skills/**` at runtime, since those files are read dynamically via `fs`, not imported. `apps/web/next.config.mjs` now sets `outputFileTracingRoot` (widened to the monorepo root, since `agent-skill-kit/` lives two directories above `apps/web`) and `outputFileTracingIncludes` (`"/api/blueprint": ["../../agent-skill-kit/skills/**/*"]`). Verified locally: a production build's `.next/server/app/api/blueprint/route.js.nft.json` includes all 113 files under `agent-skill-kit/skills/`, and `next start` correctly serves `recommend_skills`-derived `selectedSkills` from a clean build. `packages/mcp-skill-server` never had this problem on Render, since Render deploys the whole repository checkout, not a traced serverless bundle.
+**Vercel file-tracing fix (Phase 6A):** Next.js file tracing cannot statically see that `/api/blueprint` (and, as of the manual skill selector below, `/api/skills`) needs `agent-skill-kit/skills/**` at runtime, since those files are read dynamically via `fs`, not imported. `apps/web/next.config.mjs` sets `outputFileTracingRoot` (widened to the monorepo root, since `agent-skill-kit/` lives two directories above `apps/web`) and `outputFileTracingIncludes` for both routes. Verified locally: both routes' `.next/server/app/api/{blueprint,skills}/route.js.nft.json` include all 113 files under `agent-skill-kit/skills/`, and `next start` correctly serves `recommend_skills`-derived `selectedSkills` and the `/api/skills` catalog from a clean build. `packages/mcp-skill-server` never had this problem on Render, since Render deploys the whole repository checkout, not a traced serverless bundle.
+
+## Manual Skill Selection and Skill-Informed Enrichment
+
+The Skill Router's recommendation (MCP-first or local) is a *starting point*, not the final answer. Before the user can approve the Product Spec, `SpecApproval` renders an editable `SkillSelector` showing the full skill catalog, and the user's **final** selection — not the original recommendation — is what the blueprint stage actually uses.
+
+```text
+apps/web/
+  app/api/skills/route.ts         -- GET; { skills: ISkillMetadata[] } from
+                                      @ai-product-factory/skill-tools' listSkills(),
+                                      always local (no MCP call — this is just
+                                      "what skills exist", not idea-specific
+                                      recommendation)
+  app/_components/SkillSelector.tsx -- checklist of every available skill:
+                                        - recommended skills pre-checked, with
+                                          their recommendation reason
+                                        - spec-driven-development always
+                                          checked and disabled ("required")
+                                        - "Reset to recommended skills" button
+                                        - copy: "Recommended skills are
+                                          selected automatically. You can
+                                          adjust them before generating the
+                                          full blueprint."
+  src/types/blueprint.ts           -- PROTECTED_SKILL_IDS = ["spec-driven-development"]
+  src/server/orchestrator.ts       -- runBlueprintStage(idea, productSpec,
+                                       mvpScope, finalSelectedSkillIds) merges
+                                       PROTECTED_SKILL_IDS in server-side
+                                       (defense in depth — a stale or crafted
+                                       client request can't drop it) and
+                                       passes the merged selectedSkillIds to
+                                       every downstream agent
+  src/server/agents/skill-enrichment.ts -- the deterministic, skill-id-keyed
+                                            bullet map described below
+```
+
+### Request/response shape
+
+- `POST /api/blueprint` (`stage: "blueprint"`) gained `finalSelectedSkillIds: string[]`, validated with `z.array(SkillIdSchema).max(50).default([])` (reusing `skill-tools`' own kebab-case id schema — an invalid id is rejected with `400` before the orchestrator ever runs).
+- The public MCP server's tool surface is unchanged — this is purely an `apps/web` request/response addition, not a new MCP tool.
+
+### Deterministic, skill-informed enrichment (no LLM)
+
+`skill-enrichment.ts` maps a fixed set of skill ids to fixed bullets per blueprint section (`architecture`, `security`, `roadmap`, `tasks`). Architect/Security/Planning append a "Skill-Informed ___ Notes" section when any selected skill has a rule for that section; Evaluation lists which selected skills contributed notes in a "Skills Applied" section. Selecting a skill with no enrichment rule (e.g. `react-enterprise-rules`) is harmless — it just contributes nothing.
+
+| Skill | Section(s) affected | What it adds |
+|---|---|---|
+| `agent-security-review` | Security | Security checklist, a human-approval gate for high-risk actions, sensitive-data classification reminder |
+| `database-design-rules` | Architecture | Data model constraints, per-row ownership checks, indexing |
+| `testing-patterns` | Tasks, Roadmap | Unit/integration/e2e test strategy, regression tests, a hardening phase |
+| `observability-rules` | Architecture, Security | Distributed traces, cost/latency metrics, structured audit logs |
+| `mcp-tool-consumption` | Security, Architecture | Read-only/write/approval-required tool classification, a documented tool access policy |
+| `agentic-commerce-rules` | Security | Payment/payout/refund controls with spending limits, fraud/dispute handling |
+| `a2a-agent-design` | Architecture | Explicit agent/service ownership boundaries, delegation rules |
+| `a2ui-patterns` | Architecture | Trusted, schema-validated rendering of agent-generated UI/output |
+
+Verified end-to-end: selecting all eight skills above for the KnitConnect scenario produced all eight "Skill-Informed ___ Notes" blocks across Architecture/Security/Roadmap/Tasks, a "Skills Applied" line in the Readiness Score naming all eight, and a different final score than the unmodified recommendation — see `examples/generated-blueprint/` for the committed result.
 
 ## packages/mcp-skill-server (Phase 4B)
 

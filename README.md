@@ -25,6 +25,8 @@ ai-product-factory/ (npm workspaces: apps/*, packages/*)
 
 **Skill recommendation is MCP-first with a local fallback.** When `MCP_SERVER_URL` is set, `apps/web`'s spec stage tries the public MCP server's `recommend_skills` tool first (bounded by `MCP_TIMEOUT_MS`); on any failure — network error, timeout, rate limit, or an invalid response — it falls back to `@ai-product-factory/skill-tools` in-process automatically, with no user-visible error. The API response includes `skillsSource: "mcp" | "local"` so the UI can show which path produced the result. See `docs/architecture.md` for the full design.
 
+**Recommended skills are a starting point, not the final answer.** Before approving the Product Spec, the user sees the full skill catalog (`GET /api/skills`, read from `agent-skill-kit/skills` via `skill-tools`) as an editable checklist: recommended skills are pre-checked with their recommendation reason, `spec-driven-development` is always selected and can't be unchecked, and the user can check/uncheck anything else or reset back to the recommendation. The *final* selection — not the original recommendation — is sent to the blueprint stage and deterministically changes the generated Architecture, Security, Roadmap, Tasks, and Readiness Score sections (no LLM call; see "Skill-Informed Enrichment" in `docs/architecture.md`).
+
 Full detail: `docs/architecture.md` (current implementation state, phase by phase) and `docs/course-concepts-map.md` (how this maps to the course concepts).
 
 ## Local Setup
@@ -128,5 +130,6 @@ See `packages/mcp-skill-server/.env.example` for the same list with inline comme
 - [x] Vercel file-tracing gap fixed and verified (`outputFileTracingIncludes` in `apps/web/next.config.mjs`; confirmed via the build's `.nft.json` trace file).
 - [x] `packages/mcp-skill-server` deployed to Render at `https://ai-product-factory-mcp.onrender.com`.
 - [x] MCP-first skill recommendation with local fallback verified: succeeds via the live Render MCP server when `MCP_SERVER_URL` is set, and falls back to local `skill-tools` automatically when it isn't (or on a simulated failure) — see `docs/architecture.md`.
+- [x] Manual skill selection verified end-to-end: `GET /api/skills` returns the full catalog; a manually-adjusted `finalSelectedSkillIds` (recommended skills plus extra ones added, one removed) produced visibly different Architecture/Security/Roadmap/Tasks/Readiness Score output; an invalid skill id was rejected by Zod; `spec-driven-development` stayed selected even when omitted from the request.
 - [ ] `apps/web` deployed to Vercel — not done in this environment (no Vercel account access here); settings above are ready to use.
 - [ ] Public URLs added to the Kaggle Writeup once `apps/web` is deployed.

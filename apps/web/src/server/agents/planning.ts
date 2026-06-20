@@ -1,9 +1,16 @@
 import type { IAgent, IPlanningInput, IPlanningOutput } from "@/types/agents";
+import { getEnrichmentBullets } from "./skill-enrichment";
 
 export const planningAgent: IAgent<IPlanningInput, IPlanningOutput> = {
   id: "planning",
-  run({ idea }) {
+  run({ idea, selectedSkillIds }) {
     const name = idea.productName || "Untitled Product";
+
+    const roadmapEnrichment = getEnrichmentBullets(selectedSkillIds, "roadmap");
+    const roadmapEnrichmentSection =
+      roadmapEnrichment.length > 0
+        ? `\n## Skill-Informed Roadmap Notes\n\n${roadmapEnrichment.map((bullet) => `- ${bullet}`).join("\n")}\n`
+        : "";
 
     const roadmap = `# Roadmap: ${name}
 
@@ -18,7 +25,13 @@ export const planningAgent: IAgent<IPlanningInput, IPlanningOutput> = {
 - Phase 1: read-only core flows.
 - Phase 2: write flows and primary transactions.
 - Phase 3: security hardening and monitoring before public launch.
-`;
+${roadmapEnrichmentSection}`;
+
+    const tasksEnrichment = getEnrichmentBullets(selectedSkillIds, "tasks");
+    const tasksEnrichmentSection =
+      tasksEnrichment.length > 0
+        ? `\n## Skill-Informed Tasks\n\n${tasksEnrichment.map((bullet) => `- [ ] ${bullet}`).join("\n")}\n`
+        : "";
 
     const tasks = `# Task Breakdown: ${name}
 
@@ -37,7 +50,7 @@ export const planningAgent: IAgent<IPlanningInput, IPlanningOutput> = {
 - [ ] Add rate limiting on public and write endpoints.
 - [ ] Add audit logging for sensitive state transitions.
 - [ ] Run a security review pass against the threat model before launch.
-`;
+${tasksEnrichmentSection}`;
 
     return { roadmap, tasks };
   },

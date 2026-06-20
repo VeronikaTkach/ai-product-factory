@@ -1,5 +1,6 @@
 import type { IBusinessIdea } from "@/types/blueprint";
 import type { IBlueprintStageResult, ISpecStageResult } from "@/server/orchestrator";
+import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
 
 async function postBlueprint<TResponse>(body: unknown): Promise<TResponse> {
   const response = await fetch("/api/blueprint", {
@@ -24,6 +25,22 @@ export function fetchFullBlueprint(
   idea: IBusinessIdea,
   productSpec: string,
   mvpScope: string,
+  finalSelectedSkillIds: string[],
 ): Promise<IBlueprintStageResult> {
-  return postBlueprint<IBlueprintStageResult>({ stage: "blueprint", idea, productSpec, mvpScope });
+  return postBlueprint<IBlueprintStageResult>({
+    stage: "blueprint",
+    idea,
+    productSpec,
+    mvpScope,
+    finalSelectedSkillIds,
+  });
+}
+
+export async function fetchAvailableSkills(): Promise<ISkillMetadata[]> {
+  const response = await fetch("/api/skills");
+  if (!response.ok) {
+    throw new Error(`Failed to load skills (status ${response.status})`);
+  }
+  const payload = (await response.json()) as { skills: ISkillMetadata[] };
+  return payload.skills;
 }

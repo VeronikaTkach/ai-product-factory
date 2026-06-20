@@ -47,3 +47,15 @@
 - Define a clear seller/instructor verification process before allowing payouts.
 - Add an audit log for moderation actions and a process for handling disputed reviews/reports.
 - Add structured fields (e.g. shipping address) before scaling, instead of relying on free-text messages for sensitive data.
+
+## Skill-Informed Security Notes
+
+Added automatically because `agent-security-review`, `mcp-tool-consumption`, `agentic-commerce-rules`, and `observability-rules` were included in the final skill selection before this blueprint was generated:
+
+- Run the agent-security-review checklist (auth, secrets, sensitive data, tool permissions) before this feature ships.
+- Require explicit human approval before any high-risk action identified by this checklist reaches production.
+- Flag any newly identified sensitive-data field for classification before storage or transmission.
+- Classify every external tool/MCP call as read-only, write, or approval-required, and enforce that classification server-side.
+- Add explicit payment, payout, and refund controls, including spending limits and approval gates for high-value transactions.
+- Add fraud and dispute handling: flag suspicious transactions and define a chargeback/dispute resolution process.
+- Add structured audit logs for every state-changing action, including actor ID and timestamp.

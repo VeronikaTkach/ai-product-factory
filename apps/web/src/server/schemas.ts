@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SkillIdSchema } from "@ai-product-factory/skill-tools";
 
 /**
  * Server-side request/response boundary validation.
@@ -36,6 +37,11 @@ export const BlueprintRequestSchema = z.discriminatedUnion("stage", [
     idea: BusinessIdeaSchema,
     productSpec: z.string().min(1, "productSpec is required"),
     mvpScope: z.string().min(1, "mvpScope is required"),
+    // The user's final, manually-adjusted skill selection from the spec
+    // approval screen. Defaults to [] (the orchestrator still merges in
+    // PROTECTED_SKILL_IDS server-side either way). Capped at 50 — there
+    // are far fewer real skills than that; this just bounds payload size.
+    finalSelectedSkillIds: z.array(SkillIdSchema).max(50).default([]),
   }),
 ]);
 
