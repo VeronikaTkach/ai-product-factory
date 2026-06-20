@@ -140,6 +140,22 @@ export function ProductFactoryApp() {
     setStage("idea-form");
   }
 
+  /**
+   * Returns to the skill selection / approval step from the results
+   * screen, preserving the current Product Spec, recommended skills,
+   * available catalog, and the user's current skill selection — only the
+   * stage changes. No idea re-entry, no new spec/skill fetch. Re-approving
+   * sends the (possibly adjusted) selectedSkillIds to /api/blueprint again,
+   * regenerating Architecture/Security/Roadmap/Tasks/Readiness Score.
+   */
+  function handleAdjustSkills() {
+    setError(null);
+    setSteps((prev) =>
+      prev.map((step) => (step.id === "business-analyst" ? step : { ...step, status: "blocked" })),
+    );
+    setStage("spec-approval");
+  }
+
   function handleStartOver() {
     setStage("intro");
     setIdea(DEFAULT_BUSINESS_IDEA);
@@ -207,6 +223,7 @@ export function ProductFactoryApp() {
         selectedSkills={buildFinalSelectedSkills(selectedSkillIds, recommendedSkills, availableSkills)}
         skillsSource={skillsSource}
         onStartOver={handleStartOver}
+        onAdjustSkills={handleAdjustSkills}
       />
     );
   }

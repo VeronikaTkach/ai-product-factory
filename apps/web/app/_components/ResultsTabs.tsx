@@ -17,6 +17,7 @@ interface IResultsTabsProps {
   selectedSkills: ISelectedSkill[];
   skillsSource?: TSkillsSource | null;
   onStartOver: () => void;
+  onAdjustSkills: () => void;
 }
 
 function buildTabs(blueprint: IGeneratedBlueprint): IResultTab[] {
@@ -31,7 +32,13 @@ function buildTabs(blueprint: IGeneratedBlueprint): IResultTab[] {
   ];
 }
 
-export function ResultsTabs({ blueprint, selectedSkills, skillsSource, onStartOver }: IResultsTabsProps) {
+export function ResultsTabs({
+  blueprint,
+  selectedSkills,
+  skillsSource,
+  onStartOver,
+  onAdjustSkills,
+}: IResultsTabsProps) {
   const tabs = buildTabs(blueprint);
   const [activeTabId, setActiveTabId] = useState<TResultTabId>(tabs[0].id);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
@@ -63,8 +70,20 @@ export function ResultsTabs({ blueprint, selectedSkills, skillsSource, onStartOv
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-2">
         <SelectedSkillsPanel skills={selectedSkills} source={skillsSource} />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onAdjustSkills}
+            className="rounded-md border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+          >
+            Adjust skills and regenerate
+          </button>
+          <p className="text-xs text-slate-500">
+            Changing selected skills can add new blueprint sections and improve readiness coverage.
+          </p>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">
