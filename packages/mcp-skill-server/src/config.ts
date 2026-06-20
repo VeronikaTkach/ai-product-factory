@@ -15,9 +15,12 @@ export function getHost(): string {
 
 /**
  * Restricts the Host header the server will accept, mitigating DNS
- * rebinding attacks. Derived from ALLOWED_ORIGIN (e.g.
- * "https://your-vercel-app.vercel.app") if set. Leave unset only for local
- * development.
+ * rebinding attacks. Derived from ALLOWED_ORIGIN, which must be this MCP
+ * server's own public origin (e.g. its Render URL,
+ * "https://ai-product-factory-mcp.onrender.com") — not the Vercel
+ * frontend's URL. Setting it to a different host causes Express to reject
+ * the Host header on every request, including Render's own health check.
+ * Leave unset only for local development.
  */
 export function getAllowedHosts(): string[] | undefined {
   const allowedOrigin = process.env.ALLOWED_ORIGIN;

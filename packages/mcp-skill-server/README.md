@@ -57,13 +57,15 @@ This is an npm workspace package, so Render must run its install/build from the 
 | Start Command | `npm run start --workspace=packages/mcp-skill-server` |
 | Health Check Path | `/health` |
 
-Render injects `PORT` automatically; this server reads it via `process.env.PORT`. Set `HOST=0.0.0.0` (Render requirement), `ALLOWED_ORIGIN` to the deployed Vercel app's URL, and the other variables in `.env.example` as Render environment variables.
+Render injects `PORT` automatically; this server reads it via `process.env.PORT`. Set `HOST=0.0.0.0` (Render requirement), `ALLOWED_ORIGIN` to **this MCP server's own Render URL** (e.g. `https://ai-product-factory-mcp.onrender.com`) — **not** the Vercel frontend's URL — and the other variables in `.env.example` as Render environment variables.
+
+`ALLOWED_ORIGIN` is read into `allowedHosts` (see Security Controls below) and restricts the `Host` header this server accepts on *incoming* requests. Setting it to the Vercel app's URL instead of this server's own URL will cause Express to reject every request with an unmatched `Host` header — including Render's own health check, which will then fail.
 
 ## Security Controls
 
 - **Read-only, scoped filesystem access.** Reads are confined to `agent-skill-kit/skills` (or `SKILL_KIT_PATH`); `get_skill`'s `id` is validated by Zod (kebab-case) and then checked against a live directory listing before touching any path — a traversal string cannot match a real directory name. No `fs.writeFile`, no `child_process`, no shell execution anywhere in this server or `@ai-product-factory/skill-tools`.
 - **No secrets.** This server doesn't call an LLM or any third-party API, so there is nothing to leak; `.env.example` contains no credentials.
-- **DNS-rebinding protection.** `ALLOWED_ORIGIN` restricts the accepted `Host` header. Leave it set in any non-local deployment.
+- **DNS-rebinding protection.** `ALLOWED_ORIGIN` restricts the accepted `Host` header — set it to this server's own public origin (its Render URL), not the Vercel frontend's URL. This is not browser CORS; it has nothing to do with which origins are allowed to call this server, only which `Host` header value incoming requests must present. Leave it set in any non-local deployment.
 - **Rate limiting.** A basic in-memory per-IP fixed-window limiter (`RATE_LIMIT_REQUESTS_PER_MINUTE`, default 60) is applied to `POST /mcp`. Known limitation: per-process memory, not shared across instances — acceptable at demo scale (see `src/rate-limit.ts`).
 - **Safe logging.** `src/logging.ts` logs only tool name, timing, outcome, and small fields each tool explicitly passes (result counts, a skill id, a score, or a content *length*) — never raw request bodies or business idea text.
 - **No auth, no database, no LLM calls** — out of scope by design for this phase; see `AGENTS.project.md`.

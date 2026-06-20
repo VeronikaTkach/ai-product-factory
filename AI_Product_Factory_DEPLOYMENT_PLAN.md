@@ -340,11 +340,13 @@ Optional:
 SKILL_KIT_PATH=../../agent-skill-kit/skills   # default; only override if the layout changes
 MCP_SERVER_NAME=ai-product-factory-skill-server
 MCP_LOG_LEVEL=info
-ALLOWED_ORIGIN=https://your-vercel-app.vercel.app
+ALLOWED_ORIGIN=https://ai-product-factory-mcp.onrender.com
 RATE_LIMIT_REQUESTS_PER_MINUTE=60
 ```
 
 `SKILL_KIT_PATH` points at the bundled `agent-skill-kit/skills` directory (not a separately copied `packages/skill-kit`, as originally sketched in this plan) — the repository's actual skill content lives at the repo root in `agent-skill-kit/`.
+
+`ALLOWED_ORIGIN` must be **this MCP server's own public Render origin**, not the Vercel frontend's URL — it is read into `allowedHosts` to restrict the `Host` header this server accepts (DNS-rebinding mitigation), which is unrelated to browser CORS. Setting it to the Vercel app's URL causes Render's health check to fail, since the health check request's `Host` header won't match.
 
 ### Render Build Settings
 

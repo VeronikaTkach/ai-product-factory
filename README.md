@@ -96,7 +96,7 @@ Root Directory must be the repository root (not `packages/mcp-skill-server`) so 
 |---|---|---|
 | `HOST` | Yes | Set to `0.0.0.0` — Render requires binding to all interfaces. |
 | `PORT` | No | Injected automatically by Render; do not set manually. |
-| `ALLOWED_ORIGIN` | Recommended | The deployed Vercel app's URL. Restricts the `Host` header this server accepts (DNS-rebinding mitigation). Leave unset only for local-only use. |
+| `ALLOWED_ORIGIN` | Recommended | **This MCP server's own public Render URL** (e.g. `https://ai-product-factory-mcp.onrender.com`) — **not** the Vercel frontend's URL. Restricts the `Host` header this server accepts (DNS-rebinding mitigation), not browser CORS. Setting it to the Vercel URL instead causes Render's own health check to fail. Leave unset only for local-only use. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | No (defaults to `60`) | Per-IP, in-memory, fixed-window limit on `POST /mcp`. |
 | `SKILL_KIT_PATH` | No | Only needed if you change the repository layout; the default (`../../agent-skill-kit/skills`, resolved from this package's `cwd`) works for both local dev and this Render configuration. |
 | `MCP_SERVER_NAME` | No | Cosmetic name reported in MCP `initialize` and `GET /health`. |

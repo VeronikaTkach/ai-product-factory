@@ -115,7 +115,7 @@ Security controls (see `packages/mcp-skill-server/README.md` for the full list):
 - Read-only tools only; reuses `skill-tools`' path-traversal-safe reader — no new filesystem code in this package.
 - Every tool input is validated twice: once by the MCP SDK against the registered Zod `inputSchema` (rejecting bad calls before our handler even runs), and again inside `skill-tools`' own functions.
 - No secrets: this server calls no LLM and no third-party API.
-- DNS-rebinding mitigation via `ALLOWED_ORIGIN` -> `allowedHosts`.
+- DNS-rebinding mitigation via `ALLOWED_ORIGIN` -> `allowedHosts`. `ALLOWED_ORIGIN` must be this server's own public origin (its Render URL), not the Vercel frontend's URL — it restricts the `Host` header this server accepts on incoming requests, which is unrelated to browser CORS. Setting it to the wrong origin causes Render's own health check to fail (observed in practice).
 - Basic per-IP, in-memory, fixed-window rate limiting on `POST /mcp` (`RATE_LIMIT_REQUESTS_PER_MINUTE`, default 60).
 - Logging (`src/logging.ts`) records only tool name, timing, outcome, and small fields each tool explicitly passes (result counts, a skill id, a score, a content *length*) — never raw request bodies or business idea text.
 - `GET /health` for Render's health check, independent of rate limiting.
