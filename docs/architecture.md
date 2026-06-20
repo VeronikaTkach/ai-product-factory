@@ -192,6 +192,16 @@ apps/web/
 
 Verified end-to-end: selecting all eight skills above for the KnitConnect scenario produced all eight "Skill-Informed ___ Notes" blocks across Architecture/Security/Roadmap/Tasks, a "Skills Applied" line in the Readiness Score naming all eight, and a different final score than the unmodified recommendation — see `examples/generated-blueprint/` for the committed result.
 
+### How to Improve This Score
+
+The Readiness Score's "How to Improve This Score" section (`apps/web/src/server/agents/readiness-recommendations.ts`) is a separate, deterministic recommendation pass — not part of the `scoreReadiness` heuristic itself — computed fresh on every blueprint generation from the current idea, signals, components, and `selectedSkillIds`, so it changes when the user adjusts their skill selection and regenerates. Two kinds of line, kept deliberately distinct so the list never reads as "just select more skills":
+
+- **Skill recommendations** — only emitted when a concrete signal makes a skill relevant *and* it isn't already selected: `agent-security-review` for any sensitive-data signal, `agentic-commerce-rules` for payments, `database-design-rules` for user-generated content, `observability-rules` for moderation/reviews, and `testing-patterns` specifically when Delivery readiness is the weakest component. Once the user adds the skill, that line disappears on the next generation — verified by generating the same idea with a minimal skill set (lines present) and the full relevant set (lines gone).
+- **Process/safeguard recommendations** — standing reminders tied to a signal but not solved by any skill (e.g. "require human approval before enabling payments," "confirm message contents are never logged"). These persist regardless of skill selection, since they're operational decisions, not blueprint content.
+- A weakest-component line (when the lowest score is below 85) names the component and a concrete way to expand it.
+
+Shown in both the Readiness Score UI tab and the Markdown export — it's just another section of the same `readinessScore` string both render.
+
 ## packages/mcp-skill-server (Phase 4B)
 
 A small Express server exposing `packages/skill-tools` over the Model Context Protocol, using the official `@modelcontextprotocol/sdk`'s **Streamable HTTP** transport, in **stateless mode**: a fresh `McpServer` + `StreamableHTTPServerTransport` is created per `POST /mcp` request (no session map, no cross-request state), since every tool is a pure read.

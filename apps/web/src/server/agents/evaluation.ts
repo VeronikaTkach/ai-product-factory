@@ -2,6 +2,7 @@ import type { IAgent, IEvaluationInput, IEvaluationOutput } from "@/types/agents
 import { scoreReadiness } from "@ai-product-factory/skill-tools";
 import type { IReadinessComponentScore } from "@ai-product-factory/skill-tools";
 import { getAppliedEnrichmentSkillIds } from "./skill-enrichment";
+import { buildReadinessRecommendations } from "./readiness-recommendations";
 
 /**
  * Demo-mode implementation: delegates the actual scoring to
@@ -33,6 +34,12 @@ export const evaluationAgent: IAgent<IEvaluationInput, IEvaluationOutput> = {
         ? `\n## Skills Applied\n\nThe following selected skills added deterministic notes to this blueprint (Architecture, Security, and/or Tasks): ${appliedSkillIds.join(", ")}.\n`
         : "";
 
+    const recommendations = buildReadinessRecommendations({ idea, selectedSkillIds, components });
+    const recommendationsSection =
+      recommendations.length > 0
+        ? `\n## How to Improve This Score\n\n${recommendations.map((rec) => `- ${rec}`).join("\n")}\n`
+        : "";
+
     const readinessScore = `# Readiness Score: ${name}
 
 ## Component Scores
@@ -50,7 +57,7 @@ Readiness Score: ${finalScore}/100
 ## Interpretation
 
 ${buildInterpretation(components, finalScore)}
-${skillsAppliedSection}`;
+${skillsAppliedSection}${recommendationsSection}`;
 
     return { readinessScore };
   },
