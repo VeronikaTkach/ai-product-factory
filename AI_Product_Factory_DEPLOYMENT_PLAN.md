@@ -402,15 +402,18 @@ npm run dev:mcp
 
 ### Local Environment
 
-**As implemented (Phase 4B):** `LLM_PROVIDER`/`LLM_API_KEY`/`MCP_SERVER_URL` are not read by any code yet — `apps/web` calls the skill tools in-process, not over the network (see `docs/architecture.md`). Today, `apps/web/.env.example` only has `DEMO_MODE` and an optional `SKILL_KIT_PATH` override; `packages/mcp-skill-server/.env.example` has the full server config (`PORT`, `HOST`, `ALLOWED_ORIGIN`, `RATE_LIMIT_REQUESTS_PER_MINUTE`, `MCP_SERVER_NAME`, `MCP_LOG_LEVEL`). Copy the relevant `.env.example` to `.env`/`.env.local` per package rather than the values originally sketched below, which describe a later, not-yet-built integration:
+**As implemented (Phase 4B, updated Phase 6A follow-up):** `LLM_PROVIDER`/`LLM_API_KEY` are still not read by any code. `MCP_SERVER_URL` (and `MCP_TIMEOUT_MS`) **are** now read by `apps/web` — when set, the spec stage tries the public MCP server's `recommend_skills` tool first and falls back to the local `skill-tools` package on any failure (see `docs/architecture.md`, "Remote MCP-first Skill Recommendation with Local Fallback"). `apps/web/.env.example` has `DEMO_MODE`, an optional `SKILL_KIT_PATH` override, and the optional `MCP_SERVER_URL`/`MCP_TIMEOUT_MS` pair; `packages/mcp-skill-server/.env.example` has the full server config (`PORT`, `HOST`, `ALLOWED_ORIGIN`, `RATE_LIMIT_REQUESTS_PER_MINUTE`, `MCP_SERVER_NAME`, `MCP_LOG_LEVEL`). Copy the relevant `.env.example` to `.env`/`.env.local` per package rather than the values originally sketched below, which describe a different, not-yet-built integration (`LLM_PROVIDER`/`LLM_API_KEY`):
 
 ```text
 LLM_PROVIDER=...
 LLM_API_KEY=...
-MCP_SERVER_URL=http://localhost:3001/mcp
+MCP_SERVER_URL=https://ai-product-factory-mcp.onrender.com/mcp
+MCP_TIMEOUT_MS=4000
 NEXT_PUBLIC_APP_NAME=AI Product Factory
 DEMO_MODE=true
 ```
+
+(`LLM_PROVIDER`/`LLM_API_KEY`/`NEXT_PUBLIC_APP_NAME` are still not read by any code — only `MCP_SERVER_URL`, `MCP_TIMEOUT_MS`, and `DEMO_MODE` are implemented today.)
 
 ```text
 NODE_ENV=development
@@ -486,9 +489,10 @@ Verify public demo does not require paid access
 
 ### Step 4: Connect Vercel to MCP
 
-- Set `MCP_SERVER_URL` in Vercel.
+- Set `MCP_SERVER_URL` in Vercel to the deployed MCP server's URL plus `/mcp`, e.g. `https://ai-product-factory-mcp.onrender.com/mcp` (the value confirmed working in this project). Optionally set `MCP_TIMEOUT_MS` (default `4000`).
 - Redeploy Vercel app.
-- Test `recommend_skills` and `get_skill`.
+- Test `recommend_skills` through the running app (submit an idea and confirm the results show `skillsSource: "mcp"`). `apps/web` only calls `recommend_skills` remotely today — `get_skill`, `list_skills`, and `score_readiness` are exercised by the MCP server's own tests, not by apps/web.
+- Confirm the fallback path too: temporarily unset `MCP_SERVER_URL` (or point it at an unreachable URL) and verify the app still works with `skillsSource: "local"`.
 - Confirm UI displays selected skills from MCP.
 
 ### Step 5: Final Demo Verification
@@ -525,12 +529,12 @@ https://youtube.com/...
 - [ ] Web app deployed to Vercel
 - [ ] Vercel app works without login
 - [ ] Vercel API routes work
-- [ ] LLM keys are stored only in Vercel environment variables
-- [ ] Public MCP server deployed
-- [ ] MCP server is read-only
-- [ ] MCP server cannot read arbitrary files
-- [ ] MCP server cannot execute commands
-- [ ] `MCP_SERVER_URL` configured in Vercel
+- [ ] LLM keys are stored only in Vercel environment variables (n/a today — no LLM keys exist yet)
+- [x] Public MCP server deployed — `https://ai-product-factory-mcp.onrender.com`
+- [x] MCP server is read-only
+- [x] MCP server cannot read arbitrary files
+- [x] MCP server cannot execute commands
+- [ ] `MCP_SERVER_URL` configured in Vercel — pending actual `apps/web` deployment; the value to use is `https://ai-product-factory-mcp.onrender.com/mcp`
 - [ ] Demo mode works
 - [ ] Full generation flow works
 - [ ] Product Spec approval works

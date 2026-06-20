@@ -49,6 +49,7 @@ export const SpecResponseSchema = z.object({
   productSpec: z.string().min(1),
   mvpScope: z.string().min(1),
   selectedSkills: z.array(SelectedSkillSchema).default([]),
+  skillsSource: z.enum(["mcp", "local"]).default("local"),
 });
 
 export const BlueprintResponseSchema = z.object({

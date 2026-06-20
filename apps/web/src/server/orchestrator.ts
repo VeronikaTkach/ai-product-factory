@@ -1,12 +1,15 @@
-import type { IBusinessIdea } from "@/types/blueprint";
+import type { IBusinessIdea, TSkillsSource } from "@/types/blueprint";
 import type { IBusinessAnalystOutput } from "@/types/agents";
 import { businessAnalystAgent } from "./agents/business-analyst";
 import { architectAgent } from "./agents/architect";
 import { securityAgent } from "./agents/security";
 import { planningAgent } from "./agents/planning";
 import { evaluationAgent } from "./agents/evaluation";
-import { recommendSkillsDirect as recommendSkills } from "@ai-product-factory/skill-tools";
+import { recommendSkillsDirect as recommendSkillsLocal } from "@ai-product-factory/skill-tools";
 import type { ISkillRecommendation } from "@ai-product-factory/skill-tools";
+import { fetchRecommendedSkillsFromMcp } from "./mcp-client";
+
+const SKILLS_LIMIT = 5;
 
 export interface IBlueprintStageResult {
   architecture: string;
@@ -18,22 +21,39 @@ export interface IBlueprintStageResult {
 
 export interface ISpecStageResult extends IBusinessAnalystOutput {
   selectedSkills: ISkillRecommendation[];
+  skillsSource: TSkillsSource;
 }
 
 /**
  * Business Analyst stage, run before the human approval gate.
  *
- * Also runs the Skill Router (recommendSkills) against the raw idea, since
+ * Also runs the Skill Router against the raw idea, since
  * AI_Product_Factory_PROJECT_PLAN.md lists "skill routing based on project
  * needs" as part of intake, ahead of Architecture/Security/Roadmap.
+ *
+ * Skill routing is MCP-first with a local fallback: if MCP_SERVER_URL is
+ * configured, the public MCP server's recommend_skills tool is tried
+ * first (bounded by MCP_TIMEOUT_MS); on any failure — or if it's not
+ * configured at all — @ai-product-factory/skill-tools is used in-process.
+ * Either path produces the same shape; only `skillsSource` differs.
  */
 export async function runSpecStage(idea: IBusinessIdea): Promise<ISpecStageResult> {
-  const [analystOutput, selectedSkills] = await Promise.all([
+  const [analystOutput, { skills: selectedSkills, source: skillsSource }] = await Promise.all([
     businessAnalystAgent.run({ idea }),
-    recommendSkills(idea, 5),
+    resolveSelectedSkills(idea),
   ]);
 
-  return { ...analystOutput, selectedSkills };
+  return { ...analystOutput, selectedSkills, skillsSource };
+}
+
+async function resolveSelectedSkills(
+  idea: IBusinessIdea,
+): Promise<{ skills: ISkillRecommendation[]; source: TSkillsSource }> {
+  const remoteSkills = await fetchRecommendedSkillsFromMcp(idea, SKILLS_LIMIT);
+  if (remoteSkills) {
+    return { skills: remoteSkills, source: "mcp" };
+  }
+  return { skills: await recommendSkillsLocal(idea, SKILLS_LIMIT), source: "local" };
 }
 
 /**

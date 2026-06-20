@@ -79,3 +79,6 @@ export interface ISelectedSkill {
   name: string;
   reason: string;
 }
+
+/** Where selectedSkills came from: the public MCP server, or the local skill-tools fallback. */
+export type TSkillsSource = "mcp" | "local";

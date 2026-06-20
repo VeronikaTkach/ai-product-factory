@@ -6,6 +6,7 @@ import type {
   IResultTab,
   ISelectedSkill,
   TResultTabId,
+  TSkillsSource,
 } from "@/types/blueprint";
 import { bundleBlueprintAsMarkdown, downloadMarkdown } from "@/lib/markdown-export";
 import { MarkdownPreview } from "./MarkdownPreview";
@@ -14,6 +15,7 @@ import { SelectedSkillsPanel } from "./SelectedSkillsPanel";
 interface IResultsTabsProps {
   blueprint: IGeneratedBlueprint;
   selectedSkills: ISelectedSkill[];
+  skillsSource?: TSkillsSource | null;
   onStartOver: () => void;
 }
 
@@ -29,7 +31,7 @@ function buildTabs(blueprint: IGeneratedBlueprint): IResultTab[] {
   ];
 }
 
-export function ResultsTabs({ blueprint, selectedSkills, onStartOver }: IResultsTabsProps) {
+export function ResultsTabs({ blueprint, selectedSkills, skillsSource, onStartOver }: IResultsTabsProps) {
   const tabs = buildTabs(blueprint);
   const [activeTabId, setActiveTabId] = useState<TResultTabId>(tabs[0].id);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
@@ -62,7 +64,7 @@ export function ResultsTabs({ blueprint, selectedSkills, onStartOver }: IResults
       </div>
 
       <div className="mb-4">
-        <SelectedSkillsPanel skills={selectedSkills} />
+        <SelectedSkillsPanel skills={selectedSkills} source={skillsSource} />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">

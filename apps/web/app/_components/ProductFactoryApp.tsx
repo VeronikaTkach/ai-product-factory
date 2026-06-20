@@ -7,6 +7,7 @@ import type {
   ISelectedSkill,
   IWorkflowStep,
   TBlueprintStage,
+  TSkillsSource,
 } from "@/types/blueprint";
 import { DEFAULT_BUSINESS_IDEA } from "@/lib/default-idea";
 import { fetchFullBlueprint, fetchProductSpec } from "@/lib/blueprint-client";
@@ -25,6 +26,7 @@ export function ProductFactoryApp() {
   const [steps, setSteps] = useState<IWorkflowStep[]>(INITIAL_WORKFLOW_STEPS);
   const [blueprint, setBlueprint] = useState<IGeneratedBlueprint | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<ISelectedSkill[]>([]);
+  const [skillsSource, setSkillsSource] = useState<TSkillsSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -62,6 +64,7 @@ export function ProductFactoryApp() {
         mvpScope: specResult.mvpScope,
       }));
       setSelectedSkills(specResult.selectedSkills);
+      setSkillsSource(specResult.skillsSource);
       setSteps((prev) =>
         prev.map((step) =>
           step.id === "business-analyst" ? { ...step, status: "done" } : { ...step, status: "blocked" },
@@ -119,6 +122,7 @@ export function ProductFactoryApp() {
     setSteps(INITIAL_WORKFLOW_STEPS);
     setBlueprint(null);
     setSelectedSkills([]);
+    setSkillsSource(null);
     setError(null);
   }
 
@@ -149,6 +153,7 @@ export function ProductFactoryApp() {
           productSpecMarkdown={blueprint.productSpec}
           mvpScopeMarkdown={blueprint.mvpScope}
           selectedSkills={selectedSkills}
+          skillsSource={skillsSource}
           onApprove={handleApprove}
           onRequestChanges={handleRequestChanges}
         />
@@ -170,6 +175,7 @@ export function ProductFactoryApp() {
       <ResultsTabs
         blueprint={blueprint}
         selectedSkills={selectedSkills}
+        skillsSource={skillsSource}
         onStartOver={handleStartOver}
       />
     );

@@ -33,7 +33,9 @@ Browser
   -> fetch("/api/blueprint") (apps/web/src/lib/blueprint-client.ts)
        -> POST /api/blueprint (Zod-validated request/response)
             -> orchestrator (apps/web/src/server/orchestrator.ts)
-                 -> businessAnalystAgent + recommendSkillsDirect (from @ai-product-factory/skill-tools)
+                 -> businessAnalystAgent + resolveSelectedSkills
+                    (MCP-first via mcp-client.ts, falls back to
+                    recommendSkillsDirect from @ai-product-factory/skill-tools)
                     (stage: "spec", runs before approval)
                  -> architectAgent -> securityAgent -> planningAgent -> evaluationAgent
                     (stage: "blueprint", runs only after the user approves the Product Spec)
@@ -45,7 +47,7 @@ Browser
 - Request and response bodies are validated with Zod (`apps/web/src/server/schemas.ts`) at the API boundary in both directions.
 - No database, no auth. State is request-scoped; nothing is persisted server-side.
 - Secrets: none introduced yet. `DEMO_MODE` is a plain server-side env var, never exposed with a `NEXT_PUBLIC_` prefix.
-- `apps/web` calls the skill tools **in-process** via `@ai-product-factory/skill-tools` — it does not call the public MCP server over the network. The MCP server (Phase 4B) is a separate, independently deployable exposure of the same logic, primarily for the course's MCP/tool-integration demonstration and for any external MCP client. apps/web could be switched to call it remotely in a later pass, but that is not required for the orchestrator to work.
+- `apps/web` resolves `selectedSkills` MCP-first with a local fallback (see the dedicated section below) — `@ai-product-factory/skill-tools` in-process remains the always-available path; calling the deployed public MCP server is additive, not a replacement dependency.
 
 ## Why a Single `/api/blueprint` Endpoint
 
@@ -89,7 +91,43 @@ Safety properties (see `agent-security-review`, `mcp-tool-consumption`):
 - Every tool function validates its own input with Zod — not just whatever sits in front of it (a Next.js route, or an MCP transport).
 - Built with `tsc` to `dist/` (CommonJS) so it can be `require`d as a normal npm package by both a Next.js app and a plain Node server, with no bundler-specific configuration needed in either consumer.
 
-**Skill Router integration:** `runSpecStage` in apps/web's orchestrator calls `recommendSkillsDirect(idea, 5)` alongside the Business Analyst agent and returns the result as `selectedSkills` in the `/api/blueprint` (`stage: "spec"`) response. The UI renders this via `SelectedSkillsPanel` on both the Product Spec approval screen and the final results screen.
+**Skill Router integration:** `runSpecStage` in apps/web's orchestrator resolves `selectedSkills` alongside the Business Analyst agent and returns the result, plus `skillsSource`, in the `/api/blueprint` (`stage: "spec"`) response. The UI renders this via `SelectedSkillsPanel` on both the Product Spec approval screen and the final results screen. See "Remote MCP-first Skill Recommendation with Local Fallback" below for how `selectedSkills` is actually resolved.
+
+## Remote MCP-first Skill Recommendation with Local Fallback (Phase 6A follow-up)
+
+`apps/web` can resolve `selectedSkills` from the deployed public MCP server instead of always calling `@ai-product-factory/skill-tools` in-process — optionally, and with an automatic fallback so a slow or unavailable MCP server never breaks the demo.
+
+```text
+apps/web/src/server/
+  config.ts       -- getMcpServerUrl() (from MCP_SERVER_URL, null if unset
+                     or invalid), getMcpTimeoutMs() (from MCP_TIMEOUT_MS,
+                     default 4000)
+  mcp-client.ts   -- fetchRecommendedSkillsFromMcp(idea, limit): calls the
+                     public MCP server's recommend_skills tool via the
+                     official @modelcontextprotocol/sdk Client +
+                     StreamableHTTPClientTransport, bounded by a per-request
+                     timeout; validates the structuredContent response with
+                     skill-tools' own SkillRecommendationSchema before
+                     trusting it; returns null on ANY failure (never throws)
+  orchestrator.ts -- resolveSelectedSkills(idea): tries
+                     fetchRecommendedSkillsFromMcp first; on null, falls
+                     back to recommendSkillsDirect(idea, limit) from
+                     @ai-product-factory/skill-tools, in-process
+```
+
+Behavior:
+
+- **`MCP_SERVER_URL` unset (default):** the remote call is skipped entirely — `getMcpServerUrl()` returns `null` before any network code runs. Behavior is identical to Phase 4A/4B: always local, always in-process.
+- **`MCP_SERVER_URL` set and the call succeeds:** `selectedSkills` comes from the live MCP server; the API response's `skillsSource` field is `"mcp"`.
+- **`MCP_SERVER_URL` set and the call fails for any reason** — network error, the configured `MCP_TIMEOUT_MS` (default 4000ms, recommended 3000-5000ms) elapsing, an HTTP 429 from the MCP server's own rate limiter, an MCP tool error result (`isError: true`), or a response that fails Zod validation — `mcp-client.ts` returns `null` and the orchestrator falls back to `recommendSkillsDirect`. `skillsSource` is `"local"`. The user never sees an error; the spec stage completes normally.
+
+Safety and observability:
+
+- **No tool surface change.** The remote call targets the exact same `recommend_skills` tool documented in `packages/mcp-skill-server/README.md`, with the same input/output shape. Nothing about the public MCP server changed for this feature.
+- **Response is validated, not trusted.** `mcp-client.ts` parses `result.structuredContent` against `SkillRecommendationSchema` (from `@ai-product-factory/skill-tools`) with `safeParse` before returning it — a malformed or unexpected shape is treated as a failure, not passed through.
+- **`MCP_SERVER_URL` is server-side only**, read directly from `process.env` inside `src/server/`; it is never sent to the client and has no `NEXT_PUBLIC_` counterpart.
+- **Failure logging never includes the idea text.** `logMcpWarning()` logs only the failure reason (error name/message, truncated to 200 characters, or "tool returned an error result" / "failed local validation") — never the business idea or the MCP response content.
+- **`skillsSource` is informational only.** Both paths produce the same `ISkillRecommendation[]` shape; the UI and downstream agents behave identically either way.
 
 **Vercel file-tracing fix (Phase 6A):** Next.js file tracing cannot statically see that `/api/blueprint` needs `agent-skill-kit/skills/**` at runtime, since those files are read dynamically via `fs`, not imported. `apps/web/next.config.mjs` now sets `outputFileTracingRoot` (widened to the monorepo root, since `agent-skill-kit/` lives two directories above `apps/web`) and `outputFileTracingIncludes` (`"/api/blueprint": ["../../agent-skill-kit/skills/**/*"]`). Verified locally: a production build's `.next/server/app/api/blueprint/route.js.nft.json` includes all 113 files under `agent-skill-kit/skills/`, and `next start` correctly serves `recommend_skills`-derived `selectedSkills` from a clean build. `packages/mcp-skill-server` never had this problem on Render, since Render deploys the whole repository checkout, not a traced serverless bundle.
 

@@ -33,6 +33,8 @@ npm run start
 |---|---|---|
 | `DEMO_MODE` | `true` (any value other than the literal string `"false"`) | Server-side only. When `false`, `/api/blueprint` returns `501` — live LLM generation is not implemented yet. |
 | `SKILL_KIT_PATH` | `../../agent-skill-kit/skills` (resolved relative to `process.cwd()`) | Server-side only. Where `@ai-product-factory/skill-tools` reads `SKILL.md` files from. Read-only. |
+| `MCP_SERVER_URL` | unset (local fallback always used) | Server-side only, never exposed to the client. Deployed MCP server URL including `/mcp`. See "Skill Tools" below. |
+| `MCP_TIMEOUT_MS` | `4000` | Per-request timeout (ms) for the `MCP_SERVER_URL` call. |
 
 See `.env.example` in this directory. No `NEXT_PUBLIC_*` secrets exist in this app. Do not add LLM API keys to client-readable env vars.
 
@@ -51,6 +53,11 @@ Each agent in `src/server/agents/` implements `IAgent<TInput, TOutput>` (`src/ty
 
 ## Skill Tools
 
-This app depends on `@ai-product-factory/skill-tools` (`packages/skill-tools`), an npm workspace package shared with `packages/mcp-skill-server`. The orchestrator calls `recommendSkillsDirect(idea, 5)` from it during the `spec` stage and returns the result as `selectedSkills`, rendered by `SelectedSkillsPanel` on the approval and results screens.
+This app depends on `@ai-product-factory/skill-tools` (`packages/skill-tools`), an npm workspace package shared with `packages/mcp-skill-server`. During the `spec` stage, the orchestrator (`src/server/orchestrator.ts`) resolves `selectedSkills` via **MCP-first with a local fallback**:
 
-This app calls the skill tools **in-process** — it does not make a network call to the public MCP server in `packages/mcp-skill-server`. That server (Phase 4B) is an independently deployable exposure of the same shared logic over MCP, not a dependency of this app. See `../../docs/architecture.md` and `../../packages/mcp-skill-server/README.md` for that server's design, tool list, and Render deployment settings.
+1. If `MCP_SERVER_URL` is set, `src/server/mcp-client.ts` calls the public MCP server's `recommend_skills` tool (bounded by `MCP_TIMEOUT_MS`, default 4000ms) and validates the response shape before using it.
+2. On any failure — `MCP_SERVER_URL` unset, network error, timeout, rate limit (HTTP 429), an `isError` tool result, or a response that fails validation — it falls back to `recommendSkillsDirect(idea, 5)` from `@ai-product-factory/skill-tools`, in-process, with no user-visible error.
+
+The API response includes `skillsSource: "mcp" | "local"` alongside `selectedSkills`, rendered as a small badge by `SelectedSkillsPanel` on the approval and results screens. Failure warnings are logged server-side with the failure reason only — never the submitted business idea text.
+
+This app calling the MCP server is optional and additive: with `MCP_SERVER_URL` unset, behavior is identical to Phase 4A/4B (always local). See `../../docs/architecture.md` and `../../packages/mcp-skill-server/README.md` for that server's design, tool list, and Render deployment settings.

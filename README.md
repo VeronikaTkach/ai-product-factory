@@ -20,8 +20,10 @@ ai-product-factory/ (npm workspaces: apps/*, packages/*)
 ```
 
 - **apps/web** — business idea form → visible multi-agent workflow → Product Spec approval gate → results tabs (Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score) → Markdown export. Agents are deterministic demo-mode implementations today (no LLM calls yet); `DEMO_MODE=true` is the only implemented path.
-- **packages/skill-tools** — read-only access to `agent-skill-kit/skills`: list/get/recommend skills and a content-length readiness heuristic. Shared by both `apps/web` (in-process) and `packages/mcp-skill-server` (over MCP) — neither duplicates the logic.
+- **packages/skill-tools** — read-only access to `agent-skill-kit/skills`: list/get/recommend skills and a content-length readiness heuristic. Shared by both `apps/web` and `packages/mcp-skill-server` — neither duplicates the logic.
 - **packages/mcp-skill-server** — exposes the same logic as a public, read-only MCP server (`list_skills`, `get_skill`, `recommend_skills`, `score_readiness`) over Streamable HTTP, independently deployable from the web app.
+
+**Skill recommendation is MCP-first with a local fallback.** When `MCP_SERVER_URL` is set, `apps/web`'s spec stage tries the public MCP server's `recommend_skills` tool first (bounded by `MCP_TIMEOUT_MS`); on any failure — network error, timeout, rate limit, or an invalid response — it falls back to `@ai-product-factory/skill-tools` in-process automatically, with no user-visible error. The API response includes `skillsSource: "mcp" | "local"` so the UI can show which path produced the result. See `docs/architecture.md` for the full design.
 
 Full detail: `docs/architecture.md` (current implementation state, phase by phase) and `docs/course-concepts-map.md` (how this maps to the course concepts).
 
@@ -76,8 +78,10 @@ Verified locally: a clean build's `.next/server/app/api/blueprint/route.js.nft.j
 |---|---|---|
 | `DEMO_MODE` | No (defaults to `true`) | Server-side only. Set to `false` only once a real LLM path exists — today that returns `501`. |
 | `SKILL_KIT_PATH` | No | Only needed if you change the repository layout; the default resolves correctly as long as `apps/web` stays two directories below the repo root. |
+| `MCP_SERVER_URL` | No | Server-side only, never exposed to the client. The deployed MCP server's URL including `/mcp`, e.g. `https://ai-product-factory-mcp.onrender.com/mcp`. When set, the spec stage tries `recommend_skills` there first, falling back to local `skill-tools` on any failure. Leave unset to always use the local package. |
+| `MCP_TIMEOUT_MS` | No (defaults to `4000`) | Per-request timeout for the `MCP_SERVER_URL` call above. Recommended range 3000-5000ms. |
 
-No `NEXT_PUBLIC_*` variables exist in this app. Do not add any LLM API key with a `NEXT_PUBLIC_` prefix.
+No `NEXT_PUBLIC_*` variables exist in this app. Do not add any LLM API key — or `MCP_SERVER_URL` — with a `NEXT_PUBLIC_` prefix.
 
 ## Deploying to Render Free (packages/mcp-skill-server)
 
@@ -122,5 +126,7 @@ See `packages/mcp-skill-server/.env.example` for the same list with inline comme
 - [x] No secrets committed; `.gitignore` covers `.env`/`.env.*` at every package level.
 - [x] `SKILL_KIT_PATH` default verified to resolve correctly both for local dev (`npm run dev:web`, `npm run dev:mcp`) and for the Render-style invocation (`npm run start --workspace=packages/mcp-skill-server` from the repo root).
 - [x] Vercel file-tracing gap fixed and verified (`outputFileTracingIncludes` in `apps/web/next.config.mjs`; confirmed via the build's `.nft.json` trace file).
-- [ ] Actually deployed to Vercel and Render — not done in this environment (no Vercel/Render account access here); settings above are ready to use.
-- [ ] Public URLs added to the Kaggle Writeup once deployed.
+- [x] `packages/mcp-skill-server` deployed to Render at `https://ai-product-factory-mcp.onrender.com`.
+- [x] MCP-first skill recommendation with local fallback verified: succeeds via the live Render MCP server when `MCP_SERVER_URL` is set, and falls back to local `skill-tools` automatically when it isn't (or on a simulated failure) — see `docs/architecture.md`.
+- [ ] `apps/web` deployed to Vercel — not done in this environment (no Vercel account access here); settings above are ready to use.
+- [ ] Public URLs added to the Kaggle Writeup once `apps/web` is deployed.

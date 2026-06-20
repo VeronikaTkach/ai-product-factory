@@ -1,4 +1,4 @@
-import type { ISelectedSkill } from "@/types/blueprint";
+import type { ISelectedSkill, TSkillsSource } from "@/types/blueprint";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { SelectedSkillsPanel } from "./SelectedSkillsPanel";
 
@@ -6,6 +6,7 @@ interface ISpecApprovalProps {
   productSpecMarkdown: string;
   mvpScopeMarkdown: string;
   selectedSkills: ISelectedSkill[];
+  skillsSource?: TSkillsSource | null;
   onApprove: () => void;
   onRequestChanges: () => void;
 }
@@ -14,6 +15,7 @@ export function SpecApproval({
   productSpecMarkdown,
   mvpScopeMarkdown,
   selectedSkills,
+  skillsSource,
   onApprove,
   onRequestChanges,
 }: ISpecApprovalProps) {
@@ -24,7 +26,7 @@ export function SpecApproval({
         Security, Roadmap, and Tasks will not be generated until you approve it.
       </div>
 
-      <SelectedSkillsPanel skills={selectedSkills} />
+      <SelectedSkillsPanel skills={selectedSkills} source={skillsSource} />
 
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <MarkdownPreview markdown={productSpecMarkdown} />
