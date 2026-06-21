@@ -31,6 +31,14 @@ ai-product-factory/ (npm workspaces: apps/*, packages/*)
 
 Full detail: `docs/architecture.md` (current implementation state, phase by phase) and `docs/course-concepts-map.md` (how this maps to the course concepts).
 
+## Roadmap: Generation Modes
+
+Three ways to generate Architecture/Security/Roadmap/Tasks — two shipped, one planned:
+
+1. **Demo Mode** *(shipped, default)* — deterministic, skill-informed templates. Free, always available, no external calls.
+2. **Hosted Live Gemini** *(shipped, opt-in)* — real Gemini output using a server-side project API key, limited per anonymous user per day. See "Live Gemini Mode" above and in `apps/web/README.md`.
+3. **Bring Your Own Key (BYOK)** *(planned, not yet implemented)* — a user supplies their own provider API key for their own session instead of sharing the hosted project key and its daily quota. See "Bring Your Own Key (BYOK) — Planned" in `docs/architecture.md` for the full design, security principles, and provider rollout order (Gemini first, then OpenAI-compatible providers).
+
 ## Local Setup
 
 Requires Node.js 20+ and npm 9+ (workspaces support). Run everything from the **repository root** — not from inside `apps/web` or `packages/*` — so npm can resolve the workspace dependency.

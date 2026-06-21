@@ -437,6 +437,32 @@ Browser
           MCP Skill Server (Render Free) -> agent-skill-kit/skills (read-only)
 ```
 
-Possible later extensions (not built): live generation for the spec stage too (deliberately kept deterministic for now, per `AGENTS.project.md`'s reliability guidance); a shared rate-limit store if a hard cross-instance daily cap becomes necessary; additional `ILlmProvider` implementations (OpenAI, Anthropic, etc.) behind the existing abstraction.
+Possible later extensions (not built): live generation for the spec stage too (deliberately kept deterministic for now, per `AGENTS.project.md`'s reliability guidance); a shared rate-limit store if a hard cross-instance daily cap becomes necessary.
+
+### Bring Your Own Key (BYOK) — Planned
+
+**Not implemented.** Documented here so the product direction beyond Demo Mode and Hosted Live Gemini is visible. No code, schema, or UI for this exists yet — `generationMode` today is only `"demo" | "live"`.
+
+**Why:** Hosted Live Gemini shares one project API key and a small daily quota (`LIVE_AI_DAILY_LIMIT`, default 10) across every anonymous user. BYOK would let a user supply their own provider key for their own session, generating against their own quota instead of the shared one — useful for judges, power users, or anyone who wants generation without waiting on the hosted limit.
+
+**Three generation options once BYOK ships:**
+
+1. **Demo Mode** — deterministic, free, always available (today's default; unaffected by BYOK).
+2. **Hosted Live Gemini** — today's server-side project key, shared daily quota per anonymous user (unaffected by BYOK; remains for users without their own key).
+3. **Bring Your Own Key** — the user provides their own API key for the request; no hosted quota applies to them.
+
+**Security principles a BYOK implementation must follow** (these are requirements for *when* it's built, not a description of existing code):
+
+- The key is used for that request only — never cached across requests.
+- Never stored: no database row, no file, no in-memory map keyed by user.
+- Never logged: excluded from request/error logs the same way `LLM_API_KEY` already is (see `gemini-provider.ts`'s existing "never log the key" handling, which any BYOK path must replicate).
+- Never sent to analytics or any third party other than the provider the key is for.
+- Never persisted client-side: no `localStorage`, no cookie — the user re-enters it (or it lives only in client memory for the session) each time, exactly like a password field, not a remembered setting.
+- Server-side use only, over HTTPS — the browser sends the key to `apps/web`'s own API route (already TLS-terminated on Vercel), which makes the provider call; the key is never used for a direct browser-to-provider request.
+
+**Provider rollout order:**
+
+- **Phase 1: BYOK Gemini.** Reuses the existing `ILlmProvider` abstraction and `GeminiProvider` (`llm/gemini-provider.ts`) unchanged — only the key's source changes (request-supplied instead of `process.env.LLM_API_KEY`), and the daily quota check is skipped for BYOK requests.
+- **Phase 2: BYOK OpenAI-compatible providers** — OpenRouter, Groq, Together, Fireworks, or a self-hosted OpenAI-compatible gateway. Each needs one new `ILlmProvider` implementation behind the same interface; the orchestrator, route, and UI stay unchanged, the same way adding any provider already doesn't touch call sites today.
 
 See `AI_Product_Factory_PROJECT_PLAN.md` §15 for phase definitions and `AGENTS.project.md` for the done-criteria gates between phases.
