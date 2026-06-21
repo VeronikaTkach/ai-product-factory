@@ -1,5 +1,6 @@
-import type { ISelectedSkill, TSkillsSource } from "@/types/blueprint";
+import type { ISelectedSkill, TGenerationMode, TSkillsSource } from "@/types/blueprint";
 import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
+import { GenerationModeSwitcher } from "./GenerationModeSwitcher";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { SkillSelector } from "./SkillSelector";
 
@@ -12,6 +13,8 @@ interface ISpecApprovalProps {
   selectedSkillIds: string[];
   onSkillSelectionChange: (ids: string[]) => void;
   onResetSkills: () => void;
+  generationMode: TGenerationMode;
+  onGenerationModeChange: (mode: TGenerationMode) => void;
   onApprove: () => void;
   onRequestChanges: () => void;
 }
@@ -25,6 +28,8 @@ export function SpecApproval({
   selectedSkillIds,
   onSkillSelectionChange,
   onResetSkills,
+  generationMode,
+  onGenerationModeChange,
   onApprove,
   onRequestChanges,
 }: ISpecApprovalProps) {
@@ -50,6 +55,8 @@ export function SpecApproval({
         onChange={onSkillSelectionChange}
         onReset={onResetSkills}
       />
+
+      <GenerationModeSwitcher mode={generationMode} onChange={onGenerationModeChange} />
 
       <div className="flex gap-3">
         <button

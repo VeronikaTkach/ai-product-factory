@@ -33,11 +33,11 @@ A single, repeatable scenario used for screenshots, the YouTube video, and judgi
 ## Walkthrough Steps
 
 1. Open the app (intro screen).
-2. Click "Start" and fill the business idea form with the values above.
-3. Submit the form and observe the visible agent workflow progress (Business Analyst step running).
+2. Click "Start" and fill the business idea form with the values above. Leave the **Generation mode** switcher on "Demo Mode" (the default) for the canonical recording.
+3. Submit the form and observe the visible agent workflow progress (Business Analyst step running). The Product Spec is always generated deterministically regardless of the switcher.
 4. Review the generated Product Spec and MVP Scope, and the **Skills for this blueprint** selector shown above the approve buttons — it lists the skills recommended by the MCP-first/local-fallback Skill Router, with a badge showing whether they came from the public MCP server or the local fallback.
-5. Optionally adjust the skill selection: uncheck a recommended skill, check additional skills from the full catalog, or click "Reset to recommended skills." `spec-driven-development` is always selected and cannot be unchecked.
-6. Click "Approve and Continue" at the Product Spec approval step — the final skill selection (not just the original recommendation) is sent to the blueprint stage.
+5. Optionally adjust the skill selection: uncheck a recommended skill, check additional skills from the full catalog, or click "Reset to recommended skills." `spec-driven-development` is always selected and cannot be unchecked. The generation-mode switcher is shown again here, in case you want to try Live Gemini for this run.
+6. Click "Approve and Continue" at the Product Spec approval step — the final skill selection and chosen generation mode (not just the original recommendation) are sent to the blueprint stage.
 7. Observe the remaining workflow steps run (Architect, Security, Planning, Evaluation).
 8. Review the Results tabs: Product Spec, MVP Scope, Architecture, Security, Roadmap, Tasks, Readiness Score. Sections like "Skill-Informed Architecture Notes," "Skill-Informed Security Notes," and the Readiness Score's "Skills Applied" list reflect the final skill selection from step 5/6.
 9. Download one tab as Markdown, then use "Export All" to download the full blueprint bundle.
@@ -50,5 +50,5 @@ A single, repeatable scenario used for screenshots, the YouTube video, and judgi
 
 ## Reliability Notes
 
-- The demo must run with `DEMO_MODE=true` and produce the same output every time (see `examples/generated-blueprint/` for the canonical reference output).
-- Do not rely on live LLM responses for recording or judging; live mode is for stretch demonstration only once implemented.
+- The demo must run with the **Demo Mode** generation-mode switcher selected (the default) and produce the same output every time (see `examples/generated-blueprint/` for the canonical reference output).
+- Do not rely on Live Gemini Mode output for the canonical recording or judging artifact — it's now implemented (see `docs/architecture.md`, "Live Gemini Mode"), but its output is real-model, non-deterministic generation, so it cannot reproduce the exact committed example. Use Live Gemini only as an optional, secondary "look, it's real" demonstration after the Demo Mode walkthrough.

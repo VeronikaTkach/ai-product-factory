@@ -5,6 +5,7 @@ import type {
   IGeneratedBlueprint,
   IResultTab,
   ISelectedSkill,
+  TGenerationMode,
   TResultTabId,
   TSkillsSource,
 } from "@/types/blueprint";
@@ -16,9 +17,15 @@ interface IResultsTabsProps {
   blueprint: IGeneratedBlueprint;
   selectedSkills: ISelectedSkill[];
   skillsSource?: TSkillsSource | null;
+  blueprintGenerationMode: TGenerationMode | null;
   onStartOver: () => void;
   onAdjustSkills: () => void;
 }
+
+const GENERATION_MODE_LABEL: Record<TGenerationMode, string> = {
+  demo: "Generated with Demo Mode",
+  live: "Generated with Live Gemini",
+};
 
 function buildTabs(blueprint: IGeneratedBlueprint): IResultTab[] {
   return [
@@ -36,6 +43,7 @@ export function ResultsTabs({
   blueprint,
   selectedSkills,
   skillsSource,
+  blueprintGenerationMode,
   onStartOver,
   onAdjustSkills,
 }: IResultsTabsProps) {
@@ -46,7 +54,14 @@ export function ResultsTabs({
   return (
     <div className="mx-auto max-w-4xl py-10">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Generated blueprint</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-slate-900">Generated blueprint</h2>
+          {blueprintGenerationMode && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              {GENERATION_MODE_LABEL[blueprintGenerationMode]}
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
           <button
             type="button"

@@ -1,4 +1,4 @@
-# Architecture (Current: Phase 1-6A)
+# Architecture (Current: Phase 1-6A + Live Gemini Mode)
 
 This describes what exists today, not the full target system. See `AI_Product_Factory_DEPLOYMENT_PLAN.md` for the target Vercel + Render architecture and later-phase additions (real LLM calls).
 
@@ -39,7 +39,10 @@ Browser
                     recommendSkillsDirect from @ai-product-factory/skill-tools)
                     (stage: "spec", runs before approval; returns recommended
                     selectedSkills + skillsSource, not yet the final selection)
-                 -> architectAgent -> securityAgent -> planningAgent -> evaluationAgent,
+                 -> architectAgent -> securityAgent -> planningAgent -> evaluationAgent
+                    (generationMode: "demo")
+                    OR
+                    -> generateLiveBlueprint (generationMode: "live", llm/blueprint-generator.ts)
                     each receiving selectedSkillIds (the user's final selection,
                     PROTECTED_SKILL_IDS merged in server-side)
                     (stage: "blueprint", runs only after the user approves the
@@ -47,13 +50,13 @@ Browser
   -> GET /api/health -> { status, demoMode }
 ```
 
-- Every agent (`apps/web/src/server/agents/*.ts`) implements the `IAgent<TInput, TOutput>` contract (`src/types/agents.ts`) but still returns deterministic, template-based demo output — no real LLM calls yet.
-- `DEMO_MODE` (default `true`) gates generation: if explicitly set to `false`, `/api/blueprint` returns `501 Not Implemented` rather than silently faking a live response, since live LLM calls are a later phase.
+- Every demo-mode agent (`apps/web/src/server/agents/*.ts`) implements the `IAgent<TInput, TOutput>` contract (`src/types/agents.ts`) and returns deterministic, template-based output — no real LLM calls. The live-mode path (`generationMode: "live"`) is the one place that does call a real LLM (Gemini) — see "Live Gemini Mode" below.
+- `DEMO_MODE` (default `true`) is reported by `/api/health` for operator visibility only; it no longer gates `/api/blueprint` — deterministic generation is unconditionally available and is the default. The real generation-mode control is the per-request `generationMode` field plus the server-side `ENABLE_LIVE_AI` gate for live.
 - Request and response bodies are validated with Zod (`apps/web/src/server/schemas.ts`) at the API boundary in both directions.
-- No database, no auth. State is request-scoped; nothing is persisted server-side.
-- Secrets: none introduced yet. `DEMO_MODE` is a plain server-side env var, never exposed with a `NEXT_PUBLIC_` prefix.
+- No database, no auth. State is request-scoped; nothing is persisted server-side except the small in-memory Live Gemini daily-quota counter (see "Live Gemini Mode").
+- Secrets: `LLM_API_KEY` is the only one in this app, required only if Live Gemini Mode is enabled; server-side only, never exposed with a `NEXT_PUBLIC_` prefix, never logged.
 - `apps/web` resolves `selectedSkills` MCP-first with a local fallback (see the dedicated section below) — `@ai-product-factory/skill-tools` in-process remains the always-available path; calling the deployed public MCP server is additive, not a replacement dependency.
-- The recommendation is a starting point, not the final answer: the user can adjust it before approving, and the *final* selection — not the recommendation — drives the blueprint stage's output. See "Manual Skill Selection and Skill-Informed Enrichment" below.
+- The recommendation is a starting point, not the final answer: the user can adjust it before approving, and the *final* selection — not the recommendation — drives the blueprint stage's output, in both Demo and Live Gemini modes. See "Manual Skill Selection and Skill-Informed Enrichment" and "Live Gemini Mode" below.
 
 ## Why a Single `/api/blueprint` Endpoint
 
@@ -279,14 +282,157 @@ This replaces four previously-fixed numbers (80/78/75/78) with a score that chan
 
 **Public MCP tool surface:** unchanged. `packages/skill-tools`' `scoreReadiness` had one cosmetic change — the fourth component label changed from "Implementation readiness" to "Delivery readiness" to match this phase's wording — but the `score_readiness` tool's input/output **shape** (`{component, score, notes}[]` + `finalScore`) is identical, so this is a content change, not a tool surface change.
 
+## Live Gemini Mode
+
+A controlled, server-gated path to real LLM generation for the blueprint stage, sitting alongside (not replacing) the deterministic agents above. Demo Mode remains the default and is unconditionally available — Live Gemini Mode is strictly additive and off by default.
+
+```text
+apps/web/src/
+  types/blueprint.ts          -- TGenerationMode = "demo" | "live";
+                                  DEFAULT_GENERATION_MODE = "demo"
+  server/config.ts             -- isLiveAiFlagEnabled(), getLlmProvider(),
+                                   getLlmApiKey(), getLlmModel(),
+                                   getLlmTimeoutMs(), getLiveAiDailyLimit(),
+                                   isLiveGeminiConfigured() (the 3-gate check)
+  server/anon-id.ts             -- opaque httpOnly cookie (aipf_anon_id),
+                                    UUID, no PII, used only for rate-limit
+                                    bucketing
+  server/live-ai-rate-limit.ts  -- in-memory Map<anonId, {count, dateKey}>,
+                                    UTC-day buckets, consumeLiveAiQuota()
+  server/skill-context.ts       -- getSkillContextForIds(): fetches full
+                                    SKILL.md content (truncated ~1200 chars)
+                                    for selected skills via skill-tools'
+                                    getSkill, for use as prompt context
+  server/llm/
+    types.ts                    -- ILlmProvider interface (provider
+                                    abstraction: generateText(prompt, timeoutMs,
+                                    options?: { responseSchema })
+    errors.ts                   -- LiveGenerationError, one of: unavailable,
+                                    rate_limited, timeout, invalid_output,
+                                    provider_error — each with a safe userMessage
+    gemini-provider.ts           -- ILlmProvider impl over Gemini's
+                                    generateContent REST endpoint, native
+                                    fetch + AbortController, JSON response mode,
+                                    extended "thinking" disabled, maxOutputTokens
+                                    capped (see "Output tuning" below)
+    provider.ts                  -- getConfiguredLlmProvider(): returns a
+                                    GeminiProvider or null per
+                                    isLiveGeminiConfigured()
+    blueprint-prompt.ts           -- buildBlueprintPrompt(): one combined
+                                     prompt for 4 sections (NOT readinessScore
+                                     — see "Readiness Score is always
+                                     deterministic" below), embeds
+                                     selected-skill guidance verbatim
+    blueprint-generator.ts        -- generateLiveBlueprint(): orchestrates
+                                     skill-context fetch -> prompt -> provider
+                                     call -> JSON.parse -> LiveBlueprintContentSchema
+                                     validation; throws LiveGenerationError on
+                                     any failure; returns architecture/security/
+                                     roadmap/tasks only
+  server/orchestrator.ts          -- runBlueprintStage(..., generationMode)
+                                      branches Architecture/Security/Roadmap/
+                                      Tasks: "demo" -> 3 agents; "live" ->
+                                      generateLiveBlueprint. Then ALWAYS calls
+                                      evaluationAgent (unconditionally, both
+                                      modes) for Readiness Score.
+  app/api/blueprint/route.ts       -- enforces the gates server-side,
+                                      manages the anon cookie + quota,
+                                      maps LiveGenerationError to HTTP status
+  app/_components/
+    GenerationModeSwitcher.tsx     -- Demo Mode / Live Gemini radio switcher
+                                      with the required explanatory copy,
+                                      shown on IdeaForm and SpecApproval
+    GenerationLoadingBanner.tsx     -- shown during "generating-blueprint";
+                                       distinct Demo/Live copy, lists selected
+                                       skills as Live's prompt context, spinner
+```
+
+### What's live vs. deterministic
+
+- **Spec stage** (`runSpecStage`) — always deterministic, unconditionally. It does not read `generationMode` at all; the field isn't even part of the `stage: "spec"` request schema.
+- **Blueprint stage**, `generationMode: "demo"` (default) — the three existing deterministic agents for Architecture/Security/Roadmap+Tasks (Architect, Security, Planning), unchanged from Phase 5/6A.
+- **Blueprint stage**, `generationMode: "live"` — one Gemini call producing four sections (`architecture`, `security`, `roadmap`, `tasks`) as a single JSON response, so one user-triggered generation consumes exactly one unit of daily quota.
+- **Readiness Score, both modes** — always the deterministic Evaluation agent (`evaluationAgent.run`), called by the orchestrator after either path above completes, on whichever Architecture/Security/Roadmap/Tasks text it was just given. See "Readiness Score is always deterministic" below — this is the fix for an earlier inconsistency where Live mode's Readiness Score was whatever Gemini happened to write, shorter and less structured than Demo's.
+
+### Readiness Score is always deterministic (both modes)
+
+Originally, the Gemini prompt asked for all five sections including `readinessScore`, so Live Gemini's score was free-text from the model — shorter, inconsistently structured, and missing the "Skills Applied" / "How to Improve This Score" sections Demo Mode always has. Fixed by removing `readinessScore` from what Gemini is asked to produce entirely, and always computing it the same way regardless of mode:
+
+```text
+runBlueprintStage(..., generationMode):
+  if "live":
+    { architecture, security, roadmap, tasks } = generateLiveBlueprint(...)   # Gemini, 4 fields only
+  else:
+    { architecture } = architectAgent.run(...)                                # deterministic
+    { security } = securityAgent.run(...)
+    { roadmap, tasks } = planningAgent.run(...)
+
+  // unconditional, both branches:
+  { readinessScore } = evaluationAgent.run({ idea, productSpec, mvpScope, architecture, security, roadmap, tasks, selectedSkillIds })
+```
+
+`evaluationAgent` doesn't care where its inputs came from — it scores whatever Markdown text it's given via `scoreReadiness` (content-length heuristic from `@ai-product-factory/skill-tools`), then appends the same "Skills Applied" (`skill-enrichment.ts`) and "How to Improve This Score" (`readiness-recommendations.ts`) sections either way. Result: the Readiness Score tab always has Component Scores, Final Score, Interpretation, Skills Applied, and How to Improve This Score, in both modes — verified by generating the same idea in both modes and diffing the section headings present in `readinessScore` (identical in both; only the numeric scores/prose differ, since they're computed from different upstream text).
+
+`LiveBlueprintContentSchema` (in `src/server/schemas.ts`) is the 4-field shape Gemini's output is validated against; `BlueprintResponseSchema` (5 fields, including `readinessScore`) remains the shape of the orchestrator's final combined result sent to the client in both modes — unchanged from the client's perspective.
+
+### Output tuning (Gemini-specific)
+
+Empirically, with Gemini's "thinking" enabled and no output schema, a single blueprint-generation prompt produced a 250KB+ response that got truncated mid-JSON by the model's output token limit, which broke `JSON.parse`. Fixed in `gemini-provider.ts`:
+
+- `generationConfig.responseSchema` is now passed (a constrained OpenAPI-style schema matching `LiveBlueprintContentSchema`'s 4 fields), bounding output to exactly that shape.
+- `thinkingConfig: { thinkingBudget: 0 }` disables extended "thinking," applied only when the configured model name matches `/2\.5/` (sending this field to a non-thinking-capable model risks an unknown-field error).
+- `maxOutputTokens: 8192` caps response length as a hard backstop.
+- The prompt itself asks for concise sections ("a few short paragraphs or a handful of bullets per heading, not exhaustive essays").
+
+Default model is `gemini-2.5-flash`; default `LLM_TIMEOUT_MS` is 30000ms (matches the "up to 30 seconds" copy in `GenerationLoadingBanner`). Free-tier quota for any given model varies by Google Cloud project — if generation fails with a `provider_error` citing a 429 "quota exceeded," check which models your key has free quota for and set `LLM_MODEL` accordingly.
+
+### Loading UX
+
+`GenerationLoadingBanner` is shown above `WorkflowProgress` during the `"generating-blueprint"` stage (hidden once an error is present, so the `ErrorBanner` takes over). Copy differs by mode: Demo Mode says generation is deterministic and near-instant; Live Gemini explicitly says "Generating with Live Gemini. This may take up to 30 seconds." and names the selected skills being used as prompt context (so the wait is explained, not just displayed) — both alongside a small spinner. The existing four-step `WorkflowProgress` list (Architect/Security/Planning/Evaluation) is left as-is in both modes: it's still an accurate description of the four logical output sections, and the Evaluation step's existing description ("Calculates the readiness score") is now literally true in both modes rather than only in Demo Mode.
+
+### Server-side enforcement (the request field is not trusted alone)
+
+`isLiveGeminiConfigured()` requires all three: `ENABLE_LIVE_AI=true`, `LLM_PROVIDER=gemini`, `LLM_API_KEY` set. `POST /api/blueprint` re-checks this on every request before attempting generation — a client sending `generationMode: "live"` against a server with these unset gets a clear `503` ("not configured"), never a silent fallback to demo content and never an attempt to call Gemini without a key.
+
+### Daily quota and anonymous identity
+
+`LIVE_AI_DAILY_LIMIT` (default 10) requests per identity per UTC day. Identity is an opaque random UUID in an httpOnly cookie (`aipf_anon_id`) set on first Live attempt — not an auth token, grants no privilege, and is unrelated to any business idea content. The counter lives in a single in-process `Map`, incremented once per *attempt* (before calling Gemini), so a failed call still spends quota — the cost of the upstream call is incurred regardless of whether the output validates.
+
+**Documented limitations, not hidden:**
+
+- **In-memory, not shared.** On Vercel serverless, each function instance has independent memory. A cold start resets all counts to zero; concurrent warm instances don't share counts. The real-world behavior is "best-effort ~N/day per warm instance," not a hard global cap.
+- **Bypassable by clearing cookies** or using a different browser/device — there is no real identity behind the anonymous id. Accepted tradeoff for a no-auth MVP per `AGENTS.project.md`.
+- **No idea text is ever stored for rate-limiting** — only an id, a count, and a date key.
+- A hard, cross-instance guarantee would need a shared store (Redis, Postgres, etc.), explicitly out of scope per `AGENTS.project.md` ("no database unless requested").
+
+### Failure handling — shown, not swallowed
+
+Unlike the silent MCP-recommendation fallback (`skillsSource: "local"` with no user-visible error), a Live Gemini failure is always surfaced. `generateLiveBlueprint` throws `LiveGenerationError` for every failure mode, and the route maps each to a distinct status: `unavailable` → 503, `rate_limited` → 429, `timeout` → 504, `invalid_output`/`provider_error` → 502. Every `userMessage` is written to be safe to show directly — no API key, no raw provider response body, no business idea text. The UI (`ProductFactoryApp`) shows the message via the existing `ErrorBanner` pattern with an added one-click "Switch to Demo Mode" action that immediately retries deterministically — since Demo Mode always works, the user is never stuck.
+
+**Verified locally** (see the Phase 6A-follow-up build verification log): unconfigured server → 503; configured with a deliberately invalid key → 502 with the key absent from logs and the response; daily limit of 2 → third request → 429 with the cookie correctly set/reused across all three requests including the failed ones; a different anonymous identity (no cookie) → fresh quota, not blocked by another user's count; malformed `generationMode` value → 400 from Zod before any orchestrator code runs.
+
+### Skill context in the prompt
+
+`getSkillContextForIds` fetches each selected skill's full `SKILL.md` content via the *local* `skill-tools` `getSkill` (not the MCP server) — content for a known skill id is identical either way since the MCP server is a thin transport over the same bundled files, so a remote call here would add latency with no behavioral difference. `buildBlueprintPrompt` embeds this guidance verbatim (truncated ~1200 chars per skill) so the model — not fixed append-only bullets — decides how to weave the guidance into its output, in contrast to Demo Mode's `skill-enrichment.ts` bullets.
+
+### Provider abstraction
+
+`ILlmProvider` (`llm/types.ts`) is the only interface call sites depend on; `GeminiProvider` is the sole implementation today, using the platform's native `fetch` (no new npm dependency) against `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` with `responseMimeType: "application/json"` and an `AbortController`-based timeout (`LLM_TIMEOUT_MS`, default 20000ms — more generous than the MCP timeout since generation is slower than a tool call). Adding a second provider later means writing one new file behind this interface; `provider.ts`'s factory and everything upstream of it stay unchanged.
+
 ## Target State (Future Phases)
 
 ```text
 Browser
   -> Next.js App Router page
-  -> /api/blueprint (real LLM provider wrapper instead of demo agents, DEMO_MODE fallback retained)
-       -> (optional) MCP client -> Public MCP Skill Server (Render Free)
-                                     -> agent-skill-kit/skills (read-only, same skill-tools logic)
+  -> /api/blueprint
+       -> generationMode: "demo" -> deterministic agents (always available)
+       -> generationMode: "live" -> Gemini today; provider abstraction
+          (llm/types.ts) allows adding further providers without touching
+          the orchestrator or route
+       -> (optional, for skill recommendation only) MCP client -> Public
+          MCP Skill Server (Render Free) -> agent-skill-kit/skills (read-only)
 ```
+
+Possible later extensions (not built): live generation for the spec stage too (deliberately kept deterministic for now, per `AGENTS.project.md`'s reliability guidance); a shared rate-limit store if a hard cross-instance daily cap becomes necessary; additional `ILlmProvider` implementations (OpenAI, Anthropic, etc.) behind the existing abstraction.
 
 See `AI_Product_Factory_PROJECT_PLAN.md` §15 for phase definitions and `AGENTS.project.md` for the done-criteria gates between phases.

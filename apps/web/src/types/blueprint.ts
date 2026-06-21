@@ -84,6 +84,22 @@ export interface ISelectedSkill {
 export type TSkillsSource = "mcp" | "local";
 
 /**
+ * Generation mode for the blueprint stage only. The spec stage always runs
+ * deterministically regardless of this value — see
+ * src/server/orchestrator.ts and docs/architecture.md, "Live Gemini Mode".
+ *
+ * - "demo": deterministic, skill-informed templates (apps/web/src/server/agents/*).
+ *           Always available; the default; requires no env configuration.
+ * - "live": server-side Gemini call using the same selected skills as
+ *           prompt context. Only runs if the server has ENABLE_LIVE_AI=true,
+ *           LLM_PROVIDER=gemini, and LLM_API_KEY configured, and the
+ *           per-user daily quota (LIVE_AI_DAILY_LIMIT) isn't exhausted.
+ */
+export type TGenerationMode = "demo" | "live";
+
+export const DEFAULT_GENERATION_MODE: TGenerationMode = "demo";
+
+/**
  * Skills that must always be selected and cannot be removed via the manual
  * skill selector. spec-driven-development underpins the Product Spec
  * itself, so it stays selected regardless of MCP/local recommendation or

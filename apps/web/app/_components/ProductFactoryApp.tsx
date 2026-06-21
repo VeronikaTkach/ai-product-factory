@@ -7,11 +7,13 @@ import type {
   ISelectedSkill,
   IWorkflowStep,
   TBlueprintStage,
+  TGenerationMode,
   TSkillsSource,
 } from "@/types/blueprint";
-import { PROTECTED_SKILL_IDS } from "@/types/blueprint";
+import { DEFAULT_GENERATION_MODE, PROTECTED_SKILL_IDS } from "@/types/blueprint";
 import { DEFAULT_BUSINESS_IDEA } from "@/lib/default-idea";
 import {
+  BlueprintRequestError,
   fetchAvailableSkills,
   fetchFullBlueprint,
   fetchProductSpec,
@@ -22,6 +24,7 @@ import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
 import { IntroScreen } from "./IntroScreen";
 import { IdeaForm } from "./IdeaForm";
 import { WorkflowProgress } from "./WorkflowProgress";
+import { GenerationLoadingBanner } from "./GenerationLoadingBanner";
 import { SpecApproval } from "./SpecApproval";
 import { ResultsTabs } from "./ResultsTabs";
 
@@ -40,7 +43,10 @@ export function ProductFactoryApp() {
   const [availableSkills, setAvailableSkills] = useState<ISkillMetadata[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [skillsSource, setSkillsSource] = useState<TSkillsSource | null>(null);
+  const [generationMode, setGenerationMode] = useState<TGenerationMode>(DEFAULT_GENERATION_MODE);
+  const [blueprintGenerationMode, setBlueprintGenerationMode] = useState<TGenerationMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [canOfferDemoFallback, setCanOfferDemoFallback] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -101,9 +107,22 @@ export function ProductFactoryApp() {
     setSelectedSkillIds(withProtectedSkills(recommendedSkills.map((skill) => skill.id)));
   }
 
-  async function handleApprove() {
+  /**
+   * Runs the blueprint stage with whatever `generationMode` is currently
+   * selected. On a Live Gemini failure (unavailable, rate-limited,
+   * timeout, or invalid output — see BlueprintRequestError.code), the
+   * server's clear message is shown and the user can either retry the
+   * same mode or use "Switch to Demo Mode," which flips the mode and
+   * immediately retries deterministically — Demo Mode always works, so
+   * this never leaves the user stuck.
+   */
+  async function handleApprove(modeOverride?: TGenerationMode) {
     if (!blueprint) return;
+    const modeForThisAttempt = modeOverride ?? generationMode;
+    if (modeOverride) setGenerationMode(modeOverride);
+
     setError(null);
+    setCanOfferDemoFallback(false);
     setStage("generating-blueprint");
     markStep("architect", "in-progress");
     markStep("security", "in-progress");
@@ -112,13 +131,20 @@ export function ProductFactoryApp() {
 
     try {
       const [result] = await Promise.all([
-        fetchFullBlueprint(idea, blueprint.productSpec, blueprint.mvpScope, selectedSkillIds),
+        fetchFullBlueprint(
+          idea,
+          blueprint.productSpec,
+          blueprint.mvpScope,
+          selectedSkillIds,
+          modeForThisAttempt,
+        ),
         wait(STEP_DELAY_MS),
       ]);
       setBlueprint((prev) => ({
         ...(prev ?? blankBlueprint()),
         ...result,
       }));
+      setBlueprintGenerationMode(result.generationMode);
       setSteps((prev) =>
         prev.map((step) =>
           step.id === "business-analyst" ? step : { ...step, status: "done" },
@@ -132,6 +158,16 @@ export function ProductFactoryApp() {
         ),
       );
       setError(toErrorMessage(caughtError, "Failed to generate the blueprint."));
+      // Only offer the one-click Demo Mode fallback for Live-specific
+      // failures, not for generic network/500 errors on Demo Mode itself
+      // (which would just repeat the same failure).
+      setCanOfferDemoFallback(
+        modeForThisAttempt === "live" &&
+          caughtError instanceof BlueprintRequestError &&
+          ["unavailable", "rate_limited", "timeout", "invalid_output", "provider_error"].includes(
+            caughtError.code ?? "",
+          ),
+      );
     }
   }
 
@@ -145,11 +181,13 @@ export function ProductFactoryApp() {
    * screen, preserving the current Product Spec, recommended skills,
    * available catalog, and the user's current skill selection — only the
    * stage changes. No idea re-entry, no new spec/skill fetch. Re-approving
-   * sends the (possibly adjusted) selectedSkillIds to /api/blueprint again,
-   * regenerating Architecture/Security/Roadmap/Tasks/Readiness Score.
+   * sends the (possibly adjusted) selectedSkillIds and generationMode to
+   * /api/blueprint again, regenerating Architecture/Security/Roadmap/
+   * Tasks/Readiness Score.
    */
   function handleAdjustSkills() {
     setError(null);
+    setCanOfferDemoFallback(false);
     setSteps((prev) =>
       prev.map((step) => (step.id === "business-analyst" ? step : { ...step, status: "blocked" })),
     );
@@ -165,7 +203,10 @@ export function ProductFactoryApp() {
     setAvailableSkills([]);
     setSelectedSkillIds([]);
     setSkillsSource(null);
+    setGenerationMode(DEFAULT_GENERATION_MODE);
+    setBlueprintGenerationMode(null);
     setError(null);
+    setCanOfferDemoFallback(false);
   }
 
   if (stage === "intro") {
@@ -173,7 +214,14 @@ export function ProductFactoryApp() {
   }
 
   if (stage === "idea-form") {
-    return <IdeaForm initialIdea={idea} onSubmit={handleIdeaSubmit} />;
+    return (
+      <IdeaForm
+        initialIdea={idea}
+        generationMode={generationMode}
+        onGenerationModeChange={setGenerationMode}
+        onSubmit={handleIdeaSubmit}
+      />
+    );
   }
 
   if (stage === "generating-spec") {
@@ -200,7 +248,9 @@ export function ProductFactoryApp() {
           selectedSkillIds={selectedSkillIds}
           onSkillSelectionChange={handleSkillSelectionChange}
           onResetSkills={handleResetSkills}
-          onApprove={handleApprove}
+          generationMode={generationMode}
+          onGenerationModeChange={setGenerationMode}
+          onApprove={() => handleApprove()}
           onRequestChanges={handleRequestChanges}
         />
       </div>
@@ -210,8 +260,21 @@ export function ProductFactoryApp() {
   if (stage === "generating-blueprint") {
     return (
       <div>
+        {!error && (
+          <GenerationLoadingBanner
+            generationMode={generationMode}
+            selectedSkills={buildFinalSelectedSkills(selectedSkillIds, recommendedSkills, availableSkills)}
+          />
+        )}
         <WorkflowProgress steps={steps} />
-        {error && <ErrorBanner message={error} onRetry={handleApprove} onBack={handleRequestChanges} />}
+        {error && (
+          <ErrorBanner
+            message={error}
+            onRetry={() => handleApprove()}
+            onBack={handleRequestChanges}
+            onUseDemoMode={canOfferDemoFallback ? () => handleApprove("demo") : undefined}
+          />
+        )}
       </div>
     );
   }
@@ -222,6 +285,7 @@ export function ProductFactoryApp() {
         blueprint={blueprint}
         selectedSkills={buildFinalSelectedSkills(selectedSkillIds, recommendedSkills, availableSkills)}
         skillsSource={skillsSource}
+        blueprintGenerationMode={blueprintGenerationMode}
         onStartOver={handleStartOver}
         onAdjustSkills={handleAdjustSkills}
       />
@@ -251,15 +315,17 @@ function ErrorBanner({
   message,
   onRetry,
   onBack,
+  onUseDemoMode,
 }: {
   message: string;
   onRetry: () => void;
   onBack: () => void;
+  onUseDemoMode?: () => void;
 }) {
   return (
     <div className="mx-auto max-w-2xl space-y-3 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
       <p>{message}</p>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="button"
           onClick={onRetry}
@@ -267,6 +333,15 @@ function ErrorBanner({
         >
           Try again
         </button>
+        {onUseDemoMode && (
+          <button
+            type="button"
+            onClick={onUseDemoMode}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+          >
+            Switch to Demo Mode
+          </button>
+        )}
         <button
           type="button"
           onClick={onBack}

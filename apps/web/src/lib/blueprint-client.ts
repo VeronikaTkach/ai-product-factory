@@ -1,17 +1,33 @@
-import type { IBusinessIdea } from "@/types/blueprint";
+import type { IBusinessIdea, TGenerationMode } from "@/types/blueprint";
 import type { IBlueprintStageResult, ISpecStageResult } from "@/server/orchestrator";
 import type { ISkillMetadata } from "@ai-product-factory/skill-tools";
+
+export class BlueprintRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "BlueprintRequestError";
+  }
+}
 
 async function postBlueprint<TResponse>(body: unknown): Promise<TResponse> {
   const response = await fetch("/api/blueprint", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    // Carries the anonymous rate-limit cookie (src/server/anon-id.ts) for
+    // Live Gemini Mode; harmless and unused for Demo Mode requests.
+    credentials: "same-origin",
   });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error ?? `Request failed with status ${response.status}`);
+    throw new BlueprintRequestError(
+      payload.error ?? `Request failed with status ${response.status}`,
+      payload.code,
+    );
   }
 
   return response.json() as Promise<TResponse>;
@@ -26,6 +42,7 @@ export function fetchFullBlueprint(
   productSpec: string,
   mvpScope: string,
   finalSelectedSkillIds: string[],
+  generationMode: TGenerationMode,
 ): Promise<IBlueprintStageResult> {
   return postBlueprint<IBlueprintStageResult>({
     stage: "blueprint",
@@ -33,6 +50,7 @@ export function fetchFullBlueprint(
     productSpec,
     mvpScope,
     finalSelectedSkillIds,
+    generationMode,
   });
 }
 

@@ -27,6 +27,16 @@ export const BusinessIdeaSchema = z.object({
   sensitiveInfoNotes: z.string().default(""),
 });
 
+/**
+ * "demo" (default) or "live" (Gemini). The spec stage ignores this field —
+ * it always runs deterministically; see runSpecStage in orchestrator.ts.
+ * Only the blueprint stage branches on it, and only after the server-side
+ * gates in src/server/config.ts (isLiveGeminiConfigured) and the daily
+ * quota (src/server/live-ai-rate-limit.ts) both pass — a client sending
+ * generationMode: "live" cannot force live generation on its own.
+ */
+export const GenerationModeSchema = z.enum(["demo", "live"]).default("demo");
+
 export const BlueprintRequestSchema = z.discriminatedUnion("stage", [
   z.object({
     stage: z.literal("spec"),
@@ -42,6 +52,7 @@ export const BlueprintRequestSchema = z.discriminatedUnion("stage", [
     // PROTECTED_SKILL_IDS server-side either way). Capped at 50 — there
     // are far fewer real skills than that; this just bounds payload size.
     finalSelectedSkillIds: z.array(SkillIdSchema).max(50).default([]),
+    generationMode: GenerationModeSchema,
   }),
 ]);
 
@@ -66,6 +77,23 @@ export const BlueprintResponseSchema = z.object({
   readinessScore: z.string().min(1),
 });
 
+/**
+ * What Live Gemini actually has to return: architecture/security/roadmap/
+ * tasks only. readinessScore is deliberately excluded — it's always
+ * computed afterward by the same deterministic Evaluation agent used in
+ * Demo Mode (see orchestrator.ts's "live" branch), so Readiness Score is
+ * consistently rich (component scores, interpretation, skills applied,
+ * "How to Improve This Score") in both modes, not dependent on what the
+ * model decided to write.
+ */
+export const LiveBlueprintContentSchema = z.object({
+  architecture: z.string().min(1),
+  security: z.string().min(1),
+  roadmap: z.string().min(1),
+  tasks: z.string().min(1),
+});
+
 export type TBlueprintRequest = z.infer<typeof BlueprintRequestSchema>;
 export type TSpecResponse = z.infer<typeof SpecResponseSchema>;
 export type TBlueprintResponse = z.infer<typeof BlueprintResponseSchema>;
+export type TLiveBlueprintContent = z.infer<typeof LiveBlueprintContentSchema>;

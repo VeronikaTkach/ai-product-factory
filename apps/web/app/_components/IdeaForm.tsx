@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { IBusinessIdea, TMarketType } from "@/types/blueprint";
+import type { IBusinessIdea, TGenerationMode, TMarketType } from "@/types/blueprint";
+import { GenerationModeSwitcher } from "./GenerationModeSwitcher";
 
 interface IIdeaFormProps {
   initialIdea: IBusinessIdea;
+  generationMode: TGenerationMode;
+  onGenerationModeChange: (mode: TGenerationMode) => void;
   onSubmit: (idea: IBusinessIdea) => void;
 }
 
@@ -17,7 +20,12 @@ const REQUIRED_FIELDS: (keyof IBusinessIdea)[] = [
   "coreIdea",
 ];
 
-export function IdeaForm({ initialIdea, onSubmit }: IIdeaFormProps) {
+export function IdeaForm({
+  initialIdea,
+  generationMode,
+  onGenerationModeChange,
+  onSubmit,
+}: IIdeaFormProps) {
   const [idea, setIdea] = useState<IBusinessIdea>(initialIdea);
   const [error, setError] = useState<string | null>(null);
 
@@ -147,6 +155,8 @@ export function IdeaForm({ initialIdea, onSubmit }: IIdeaFormProps) {
           onChange={(value) => update("sensitiveInfoNotes", value)}
         />
       </FormSection>
+
+      <GenerationModeSwitcher mode={generationMode} onChange={onGenerationModeChange} />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

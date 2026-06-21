@@ -1,4 +1,9 @@
-import { PROTECTED_SKILL_IDS, type IBusinessIdea, type TSkillsSource } from "@/types/blueprint";
+import {
+  PROTECTED_SKILL_IDS,
+  type IBusinessIdea,
+  type TGenerationMode,
+  type TSkillsSource,
+} from "@/types/blueprint";
 import type { IBusinessAnalystOutput } from "@/types/agents";
 import { businessAnalystAgent } from "./agents/business-analyst";
 import { architectAgent } from "./agents/architect";
@@ -8,6 +13,7 @@ import { evaluationAgent } from "./agents/evaluation";
 import { recommendSkillsDirect as recommendSkillsLocal } from "@ai-product-factory/skill-tools";
 import type { ISkillRecommendation } from "@ai-product-factory/skill-tools";
 import { fetchRecommendedSkillsFromMcp } from "./mcp-client";
+import { generateLiveBlueprint } from "./llm/blueprint-generator";
 
 const SKILLS_LIMIT = 5;
 
@@ -17,6 +23,7 @@ export interface IBlueprintStageResult {
   roadmap: string;
   tasks: string;
   readinessScore: string;
+  generationMode: TGenerationMode;
 }
 
 export interface ISpecStageResult extends IBusinessAnalystOutput {
@@ -66,16 +73,52 @@ async function resolveSelectedSkills(
  * skill selector (recommended skills plus any the user added/removed).
  * PROTECTED_SKILL_IDS is merged in server-side regardless of what the
  * client sent, so spec-driven-development is never silently dropped.
- * Each agent uses these ids to add deterministic, skill-informed notes —
- * see src/server/agents/skill-enrichment.ts.
+ *
+ * `generationMode` branches Architecture/Security/Roadmap/Tasks:
+ * - "demo" (default): the three deterministic agents below (Architect,
+ *   Security, Planning), each adding skill-informed notes via
+ *   src/server/agents/skill-enrichment.ts.
+ * - "live": a single Gemini call (src/server/llm/blueprint-generator.ts)
+ *   using the same selectedSkillIds as prompt context instead of those
+ *   three agents. Availability (ENABLE_LIVE_AI/LLM_PROVIDER/LLM_API_KEY)
+ *   and the daily quota are checked by the route handler BEFORE this
+ *   function is called — by the time we get here with generationMode
+ *   "live", the request has already been cleared to attempt a real Gemini
+ *   call. Any failure during the call itself (timeout, invalid output,
+ *   provider error) propagates as a LiveGenerationError for the route
+ *   handler to map to a clear HTTP response — this function does not
+ *   swallow it or silently substitute demo content.
+ *
+ * Readiness Score is NOT branched: the Evaluation agent always runs,
+ * deterministically, in both modes, scoring whatever Architecture/
+ * Security/Roadmap/Tasks text it was given (demo-generated or
+ * Gemini-generated) with the same heuristic, skill-applied list, and "How
+ * to Improve This Score" recommendations either way. This is what keeps
+ * the Readiness Score tab consistently rich regardless of generationMode.
  */
 export async function runBlueprintStage(
   idea: IBusinessIdea,
   productSpec: string,
   mvpScope: string,
   finalSelectedSkillIds: string[],
+  generationMode: TGenerationMode,
 ): Promise<IBlueprintStageResult> {
   const selectedSkillIds = Array.from(new Set([...PROTECTED_SKILL_IDS, ...finalSelectedSkillIds]));
+
+  if (generationMode === "live") {
+    const live = await generateLiveBlueprint({ idea, productSpec, mvpScope, selectedSkillIds });
+    const { readinessScore } = await evaluationAgent.run({
+      idea,
+      productSpec,
+      mvpScope,
+      architecture: live.architecture,
+      security: live.security,
+      roadmap: live.roadmap,
+      tasks: live.tasks,
+      selectedSkillIds,
+    });
+    return { ...live, readinessScore, generationMode: "live" };
+  }
 
   const { architecture } = await architectAgent.run({ idea, productSpec, selectedSkillIds });
   const { security } = await securityAgent.run({ idea, productSpec, architecture, selectedSkillIds });
@@ -97,5 +140,5 @@ export async function runBlueprintStage(
     selectedSkillIds,
   });
 
-  return { architecture, security, roadmap, tasks, readinessScore };
+  return { architecture, security, roadmap, tasks, readinessScore, generationMode: "demo" };
 }
