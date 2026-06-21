@@ -1,0 +1,36 @@
+name: Keep MCP Skill Server Warm
+
+# Render Free web services spin down after ~15 minutes with no traffic and
+# can take 30-60+ seconds to cold-start on the next request. apps/web's
+# MCP-first skill recommendation (src/server/mcp-client.ts) only waits
+# MCP_TIMEOUT_MS (default 4000ms) before falling back to the local
+# skill-tools package, so a cold instance causes every production request
+# to silently use the local fallback instead of the public MCP server.
+#
+# This workflow pings the read-only /health endpoint often enough that the
+# Render instance never goes fully idle, so production requests find it
+# already warm. It has no effect on correctness (the local fallback is
+# always safe — see docs/architecture.md) — it only makes the MCP path
+# actually get exercised in practice.
+#
+# Caveat: GitHub automatically disables scheduled workflows after 60 days
+# with no commits to the repository. If pings stop unexpectedly, push any
+# commit (or re-enable the workflow from the Actions tab) to restart it.
+
+on:
+  schedule:
+    # Every 10 minutes — comfortably under Render Free's ~15 minute idle
+    # timeout even accounting for GitHub's scheduling jitter under load.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping MCP health endpoint
+        env:
+          MCP_HEALTH_URL: https://ai-product-factory-mcp.onrender.com/health
+        run: |
+          echo "Pinging $MCP_HEALTH_URL"
+          curl -fsS --max-time 70 "$MCP_HEALTH_URL"

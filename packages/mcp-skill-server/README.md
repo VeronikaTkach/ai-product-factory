@@ -61,6 +61,12 @@ Render injects `PORT` automatically; this server reads it via `process.env.PORT`
 
 `ALLOWED_ORIGIN` is read into `allowedHosts` (see Security Controls below) and restricts the `Host` header this server accepts on *incoming* requests. Setting it to the Vercel app's URL instead of this server's own URL will cause Express to reject every request with an unmatched `Host` header — including Render's own health check, which will then fail.
 
+### Render Free Cold Starts
+
+Render's free tier spins this service down after ~15 minutes of no traffic and takes 30-60+ seconds to cold-start the next request — much longer than `apps/web`'s `MCP_TIMEOUT_MS` (default 4000ms) waits before falling back to its local skill-tools copy (see `docs/architecture.md`, "Remote MCP-first Skill Recommendation with Local Fallback"). With light traffic, this means production requests can end up using the local fallback almost every time, not because anything is misconfigured, but because the upstream instance is asleep.
+
+The repo includes `.github/workflows/keep-mcp-warm.yml`, a scheduled GitHub Actions workflow that pings `GET /health` every 10 minutes to keep the instance warm. It's optional, has no effect on this server's code or behavior, and can also be triggered manually from the Actions tab (`workflow_dispatch`) for an immediate one-off wake-up. GitHub auto-disables scheduled workflows after 60 days with no repository commits — push anything (or re-enable it from the Actions tab) if pings stop.
+
 ## Security Controls
 
 - **Read-only, scoped filesystem access.** Reads are confined to `agent-skill-kit/skills` (or `SKILL_KIT_PATH`); `get_skill`'s `id` is validated by Zod (kebab-case) and then checked against a live directory listing before touching any path — a traversal string cannot match a real directory name. No `fs.writeFile`, no `child_process`, no shell execution anywhere in this server or `@ai-product-factory/skill-tools`.

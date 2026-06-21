@@ -143,5 +143,6 @@ See `packages/mcp-skill-server/.env.example` for the same list with inline comme
 - [x] Manual skill selection verified end-to-end: `GET /api/skills` returns the full catalog; a manually-adjusted `finalSelectedSkillIds` (recommended skills plus extra ones added, one removed) produced visibly different Architecture/Security/Roadmap/Tasks/Readiness Score output; an invalid skill id was rejected by Zod; `spec-driven-development` stayed selected even when omitted from the request.
 - [x] Demo Mode verified to work with zero Gemini env vars set (default behavior unchanged).
 - [x] Live Gemini Mode verified end-to-end with a deliberately invalid API key: server correctly returns 503 when unconfigured, 502 with a clear message when the upstream call fails (key never appears in logs or the response), 429 once the per-user daily quota is exhausted, and the anonymous rate-limit cookie is set/reused correctly across requests including on error responses.
-- [ ] `apps/web` deployed to Vercel — not done in this environment (no Vercel account access here); settings above are ready to use.
-- [ ] Public URLs added to the Kaggle Writeup once `apps/web` is deployed.
+- [x] `apps/web` deployed to Vercel.
+- [x] Keep-warm workflow added (`.github/workflows/keep-mcp-warm.yml`, pings the Render MCP server's `/health` every 10 minutes) to mitigate Render Free cold starts — without it, production requests can land on a sleeping instance and silently use the local skill-tools fallback almost every time, since Render's 30-60s+ cold-start time far exceeds `MCP_TIMEOUT_MS` (default 4000ms). See "Remote MCP-first Skill Recommendation with Local Fallback" in `docs/architecture.md`.
+- [ ] Public URLs added to the Kaggle Writeup once `apps/web`'s production URL is finalized.
