@@ -14,6 +14,8 @@
 - API response type aliases start with `T`.
 - Interfaces start with `I`.
 - React component props use interfaces.
+- If a type or interface is used only in one file, keep it in that file.
+- If a type or interface is reused across multiple files, move it to the nearest shared `types/` or domain model location.
 - Avoid `any` unless there is a documented boundary reason.
 - Prefer discriminated unions over boolean flag combinations.
 - Keep domain types near the domain that owns them.
@@ -49,6 +51,8 @@ interface IUserProfileCardProps {
 - Extract reusable behavior into custom hooks.
 - Avoid deeply nested component trees.
 - Avoid mixing data fetching, transformation, and rendering in a single component.
+- Put components reused across sections in `src/components/` or the existing shared component layer.
+- Put components used only inside one route, page, or route group in a local `_components/` folder near that route.
 
 ## Framework Selection
 

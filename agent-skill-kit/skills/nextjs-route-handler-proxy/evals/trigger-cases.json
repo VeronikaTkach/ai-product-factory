@@ -1,0 +1,37 @@
+{
+  "skill": "nextjs-route-handler-proxy",
+  "positive": [
+    {
+      "id": "route_handler_001",
+      "input": "Add a Next.js route handler that proxies registration through /api/auth/create_user.",
+      "expected": "trigger"
+    },
+    {
+      "id": "api_url_server_001",
+      "input": "Review this Next.js app to ensure API_URL is only used in route handlers.",
+      "expected": "trigger"
+    },
+    {
+      "id": "proxy_auth_001",
+      "input": "Implement login/logout through src/app/api/auth/session and end_session route handlers.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "vite_direct_001",
+      "input": "Create an Axios client in a Vite React app that calls the NestJS API directly.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "nestjs_controller_001",
+      "input": "Create a NestJS auth controller.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "pwa_001",
+      "input": "Add offline support to this PWA.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

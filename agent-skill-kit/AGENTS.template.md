@@ -41,10 +41,13 @@ Use the narrowest relevant skill:
 
 - `spec-driven-development` before coding unclear features.
 - `react-enterprise-rules` for React, TypeScript frontend, FSD, Redux, Tailwind, shadcn/ui, Radix.
+- `frontend-production-review` for senior frontend production reviews with architecture, code quality, tests, and performance sections.
+- `nextjs-route-handler-proxy` for Next.js App Router route handlers that proxy backend APIs and keep `API_URL` server-side.
 - `pwa-rules` for PWA manifest, service workers, cache strategy, offline UX, installability, and update behavior.
 - `nestjs-backend-rules` for NestJS backend code.
 - `database-design-rules` for PostgreSQL, Prisma, Supabase, schema, migrations, indexes.
 - `testing-patterns` for unit, integration, e2e, Playwright, and regression test strategy.
+- `browser-test-cases` for `.claude/test-cases.json` browser scenario execution and analysis.
 - `typescript-code-review` for focused TypeScript code review.
 - `code-review` for PR-level review and merge readiness.
 - `agent-security-review` for auth, secrets, sensitive data, MCP/tools, production actions.
@@ -60,11 +63,14 @@ For new features:
 
 1. Start with `spec-driven-development`.
 2. Use implementation skills for the affected layer.
-3. Use `pwa-rules` when the feature touches installability, service workers, cache storage, offline behavior, or app update UX.
-4. Use `testing-patterns`.
-5. Use `typescript-code-review`.
-6. Use `agent-security-review` when sensitive data, permissions, tools, production, or external actions are involved.
-7. Use `code-review` before merge.
+3. Use `nextjs-route-handler-proxy` when the feature touches Next.js App Router proxy routes.
+4. Use `pwa-rules` when the feature touches installability, service workers, cache storage, offline behavior, or app update UX.
+5. Use `testing-patterns`.
+6. Use `browser-test-cases` when validating saved browser scenarios.
+7. Use `typescript-code-review`.
+8. Use `frontend-production-review` for senior frontend production reviews.
+9. Use `agent-security-review` when sensitive data, permissions, tools, production, or external actions are involved.
+10. Use `code-review` before merge.
 
 ## Guardrails
 

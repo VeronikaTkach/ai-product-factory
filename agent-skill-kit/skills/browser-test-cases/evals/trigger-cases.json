@@ -1,0 +1,37 @@
+{
+  "skill": "browser-test-cases",
+  "positive": [
+    {
+      "id": "run_case_001",
+      "input": "Run the login_success case from .claude/test-cases.json.",
+      "expected": "trigger"
+    },
+    {
+      "id": "debug_case_001",
+      "input": "Use the saved browser case checkout_happy_path and report console errors and failed requests.",
+      "expected": "trigger"
+    },
+    {
+      "id": "final_url_001",
+      "input": "Run case password_reset and check whether finalUrl includes /recover/sent.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "unit_test_001",
+      "input": "Write unit tests for this date formatter.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "backend_e2e_001",
+      "input": "Add NestJS e2e tests for the expenses endpoint.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "visual_design_001",
+      "input": "Make this landing page look more polished.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

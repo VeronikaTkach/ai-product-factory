@@ -1,0 +1,37 @@
+{
+  "skill": "frontend-production-review",
+  "positive": [
+    {
+      "id": "senior_review_001",
+      "input": "Review this frontend as a senior engineer. Treat it like a production system.",
+      "expected": "trigger"
+    },
+    {
+      "id": "big_review_001",
+      "input": "Do a BIG frontend architecture, code quality, tests, and performance review.",
+      "expected": "trigger"
+    },
+    {
+      "id": "production_readiness_001",
+      "input": "Is this React dashboard production-ready? Give tradeoffs and recommendations.",
+      "expected": "trigger"
+    }
+  ],
+  "negative": [
+    {
+      "id": "plain_component_001",
+      "input": "Create a React button component.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "nestjs_001",
+      "input": "Review this NestJS guard.",
+      "expected": "do_not_trigger"
+    },
+    {
+      "id": "migration_001",
+      "input": "Review this Prisma migration.",
+      "expected": "do_not_trigger"
+    }
+  ]
+}

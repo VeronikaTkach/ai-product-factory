@@ -37,6 +37,32 @@ Best for:
 - API clients
 - Tailwind, shadcn/ui, Radix UI conventions
 
+### frontend-production-review
+
+Use when the user asks for a senior/staff-level frontend review of a production system, broad frontend risk review, or BIG/SMALL review flow.
+
+Best for:
+
+- architecture review
+- code quality review
+- test review
+- performance review
+- issue tradeoff analysis
+- production-readiness recommendations
+
+### nextjs-route-handler-proxy
+
+Use for Next.js App Router projects where client code must call local route handlers that proxy real backend APIs.
+
+Best for:
+
+- `src/app/api/**/route.ts`
+- backend path hiding
+- server-only `API_URL`
+- auth/session proxy routes
+- push notification proxy routes
+- preventing direct browser-to-backend calls
+
 ### pwa-rules
 
 Use when a frontend app is installable, offline-capable, or uses service workers, Web App Manifest, Cache Storage, push notifications, background sync, or app update flows.
@@ -158,6 +184,20 @@ Best for:
 - Playwright checks
 - regression-first bug workflow
 
+### browser-test-cases
+
+Use when a project stores browser scenarios in `.claude/test-cases.json` or a similar JSON case file and the user asks to run a named browser case.
+
+Best for:
+
+- reading `baseUrl` and case `path`
+- executing saved browser actions
+- analyzing console errors
+- analyzing page errors
+- analyzing failed requests
+- checking final URL expectations
+- reporting pass/fail
+
 ## Specialized Code Review
 
 ### typescript-code-review
@@ -226,12 +266,23 @@ Best for:
 
 1. `spec-driven-development`
 2. `react-enterprise-rules` and/or `nestjs-backend-rules`
-3. `pwa-rules` if installability, service workers, offline behavior, or cache storage are involved
-4. `database-design-rules` if persistence changes
-5. `testing-patterns`
+3. `nextjs-route-handler-proxy` if Next.js App Router route handlers proxy backend APIs
+4. `pwa-rules` if installability, service workers, offline behavior, or cache storage are involved
+5. `database-design-rules` if persistence changes
+6. `testing-patterns`
+7. `typescript-code-review`
+8. `agent-security-review` if sensitive
+9. `code-review`
+
+## Next.js API Proxy Feature
+
+1. `spec-driven-development` if behavior is not obvious
+2. `react-enterprise-rules`
+3. `nextjs-route-handler-proxy`
+4. `testing-patterns`
+5. `agent-security-review` if auth, sessions, sensitive data, or production APIs are involved
 6. `typescript-code-review`
-7. `agent-security-review` if sensitive
-8. `code-review`
+7. `code-review`
 
 ## PWA Feature or App
 
@@ -294,9 +345,25 @@ Best for:
 
 1. `spec-driven-development` if behavior is not obvious
 2. `react-enterprise-rules`
+3. `nextjs-route-handler-proxy` if client/backend calls must go through Next.js route handlers
+4. `pwa-rules` if installability, service workers, offline behavior, or cache storage are involved
+5. `testing-patterns`
+6. `typescript-code-review`
+7. `code-review`
+
+## Frontend Production Review
+
+1. `frontend-production-review`
+2. `typescript-code-review`
 3. `testing-patterns`
-4. `typescript-code-review`
-5. `code-review`
+4. `agent-security-review` if auth, sensitive data, or production API access is involved
+5. `code-review` for merge readiness
+
+## Browser Case Validation
+
+1. `browser-test-cases`
+2. `testing-patterns` when a failed case needs a regression plan
+3. `typescript-code-review` for code fixes
 
 ## Database Migration
 

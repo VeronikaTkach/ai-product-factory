@@ -2,7 +2,7 @@
 
 A portable skill library for agent-assisted software development.
 
-This kit packages reusable agent skills, routing guidance, and roadmap documents for building production-minded agentic workflows around TypeScript, React, PWA, NestJS, PostgreSQL, Prisma, MCP, security review, evaluation, observability, A2A, A2UI, and agentic commerce patterns.
+This kit packages reusable agent skills, routing guidance, and roadmap documents for building production-minded agentic workflows around TypeScript, React, Next.js, PWA, NestJS, PostgreSQL, Prisma, MCP, browser validation, security review, evaluation, observability, A2A, A2UI, and agentic commerce patterns.
 
 ## What's Included
 
@@ -16,10 +16,13 @@ This kit packages reusable agent skills, routing guidance, and roadmap documents
 
 - `spec-driven-development`
 - `react-enterprise-rules`
+- `frontend-production-review`
+- `nextjs-route-handler-proxy`
 - `pwa-rules`
 - `nestjs-backend-rules`
 - `database-design-rules`
 - `testing-patterns`
+- `browser-test-cases`
 - `typescript-code-review`
 - `code-review`
 - `agent-security-review`
@@ -56,6 +59,47 @@ Note: these are project-local skills. If your agent runtime cannot invoke them a
 ```text
 agent-skill-kit/skills/<skill-name>/SKILL.md
 ```
+
+## Public MCP Access
+
+The skill library is also available through a public, read-only MCP Skill Server:
+
+```text
+https://ai-product-factory-mcp.onrender.com/mcp
+```
+
+Health check:
+
+```text
+https://ai-product-factory-mcp.onrender.com/health
+```
+
+Use this option when your agent client supports the MCP Streamable HTTP transport and you want to discover or retrieve skills without vendoring the kit into a project.
+
+Available tools:
+
+- `list_skills` - list available skills and metadata.
+- `get_skill` - retrieve a specific skill by id.
+- `recommend_skills` - recommend skills for a project or business idea context.
+- `score_readiness` - compute a simple readiness score for generated blueprint artifacts.
+
+Example client setup, adapted to your MCP-compatible tool:
+
+```json
+{
+  "name": "agentic-engineering-skill-kit",
+  "transport": "streamable-http",
+  "url": "https://ai-product-factory-mcp.onrender.com/mcp"
+}
+```
+
+Limitations:
+
+- The public MCP server is read-only. It cannot write files, execute commands, access secrets, or read arbitrary filesystem paths.
+- It exposes only the bundled skill content and lightweight recommendation/scoring tools.
+- It is hosted on Render Free, so the first request after inactivity can take 30-90 seconds while the service wakes up.
+- Availability is best-effort for demonstration and experimentation. For production workflows, vendor the kit into your project or deploy your own MCP server.
+- Client configuration differs across Claude, Cursor, Codex, and other MCP clients. Use the endpoint above with any client that supports Streamable HTTP MCP servers.
 
 ## Optional Project Context
 
@@ -104,6 +148,24 @@ Implement the approved spec. Use react-enterprise-rules for frontend, nestjs-bac
 Use pwa-rules for this PWA work. Cover manifest, service worker strategy, offline/online UX, cache invalidation, app update behavior, installability, Lighthouse checks, and browser/device testing.
 ```
 
+### Senior Frontend Production Review
+
+```text
+Use frontend-production-review. Ask whether this is a BIG or SMALL review, then review architecture, code quality, tests, and performance with concrete tradeoffs and recommendations.
+```
+
+### Next.js Route Handler Proxy
+
+```text
+Use nextjs-route-handler-proxy for this Next.js App Router API proxy work. Client code must call local route handlers only; API_URL must stay server-side.
+```
+
+### Browser Test Case
+
+```text
+Use browser-test-cases to run the [case id] case from .claude/test-cases.json. Report console errors, page errors, failed requests, final URL, and pass/fail status.
+```
+
 ### Focused TypeScript Review
 
 ```text
@@ -128,11 +190,14 @@ For new features:
 
 1. Start with `spec-driven-development`.
 2. Use implementation skills for affected layers.
-3. Use `pwa-rules` when the app is installable, offline-capable, or uses service workers/cache storage.
-4. Use `testing-patterns`.
-5. Use `typescript-code-review`.
-6. Use `agent-security-review` when sensitive data, permissions, tools, production, or external actions are involved.
-7. Use `code-review` before merge.
+3. Use `nextjs-route-handler-proxy` when a Next.js App Router project proxies backend APIs through route handlers.
+4. Use `pwa-rules` when the app is installable, offline-capable, or uses service workers/cache storage.
+5. Use `testing-patterns`.
+6. Use `browser-test-cases` when validating saved browser scenarios.
+7. Use `typescript-code-review`.
+8. Use `frontend-production-review` for senior frontend production reviews.
+9. Use `agent-security-review` when sensitive data, permissions, tools, production, or external actions are involved.
+10. Use `code-review` before merge.
 
 ## Status
 
